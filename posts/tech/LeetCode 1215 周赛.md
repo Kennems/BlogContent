@@ -179,6 +179,47 @@ class Solution:
 ```py
 class Solution:
     def beautifulSplits(self, nums: List[int]) -> int:
+        def z_function(s):
+            n = len(s)
+            z = [0] * n
+            l, r = 0, 0
+            for i in range(1, n):
+                if i <= r and z[i - l] < r - i + 1:
+                    z[i] = z[i - l]
+                else:
+                    z[i] = max(0, r - i + 1)
+                    while i + z[i] < n and s[z[i]] == s[i + z[i]]:
+                        z[i] += 1
+                if i + z[i] - 1 > r:
+                    l = i
+                    r = i + z[i] - 1
+            return z
+            
+        n = len(nums)
+        res = 0
+        z0 = z_function(nums)
+
+        # 遍历分割点
+        for i in range(1, n - 1):  # i 是 nums1 和 nums2 的分割点
+            z1 = z_function(nums[i:])
+            for j in range(i + 1, n):
+                l1, l2, l3 = i, j - i, n - j
+                if l1 <= l2 and z0[l1] >= l1:
+                    res += (n - j)
+                    break
+
+                if l2 <= l3 and z1[l2] >= l2:
+                    res += 1
+
+        return res
+
+```
+
+#### LCP
+
+```py
+class Solution:
+    def beautifulSplits(self, nums: List[int]) -> int:
         n = len(nums)
 
         lcp = [[0] * (n + 1) for _ in range(n + 1)]

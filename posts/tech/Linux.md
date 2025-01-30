@@ -436,21 +436,147 @@ d0 ： 从当前光标开始，删除到本行的开头
 
 :set paste 设置粘贴模式
 
+## tmux
+
+`tmux` 进入 `exit`(ctrl + d) 退出
+
+### 创建新会话
+
+```
+tmux new -s <session-name>
+```
+
+### 分离会话
+
+`ctrl + b` then `d`
+
+```
+tmux detach
+```
+
+```
+tmux ls
+```
+
+### 接入已有对话
+
+`ctrl + b` then `s`
+
+```
+tmux attach -t 0
+```
+
+```
+tmux attch -t <session-name>
+```
+
+### 杀死对话
+
+`ctrl + b` then `$`
+
+```
+tmux kill-session -t 0
+```
+
+```
+tmux kill-session -t <session-name>
+```
+
+### 切换会话
+
+```
+tmux switch -t 0
+```
+
+### 划分窗格
+
+`ctrl + b`  then `%` : 左右划分
+
+`ctrl + b` then `“` : 上下划分
+
+`ctrl + b` then `<arrow key>` : 光标
+
+```
+tmux split-window
+```
+
+```
+tmux split-window -h
+```
+
+### 移动光标
+
+`ctrl + b` then `{ ` 切换到上一个
+
+`ctrl + b` then `} ` 切换到下一个
+
+`ctrl + b`  then `ctrl + o ` 所有窗格向前移动一个位置，第一个窗格变成最后一个窗格
+
+`ctrl + b` then `alt + o` 所有窗格向后移动一个位置，最后一个窗格变成第一个窗格
+
+`ctrl + b` then `x` 关闭当前窗格
+
+`ctrl + b` then `!` 将当前窗格拆分为一个独立窗口
+
+`ctrl + b`  then `z` 当前窗格全屏显示，再使用一次变回原来大小
+
+`ctrl + b`  then `q` 显示窗格编号
+
+```
+tmux select -pane -U
+```
+
+```
+tmux select -pane -D
+```
+
+```
+tmux select -pane -L
+```
+
+```
+tmux select -pane -R
+```
+
+### 交换窗格位置
+
+```
+tmux swap-pane -U
+```
+
+```
+tmux swap-pane -D
+```
+
+### 创建多个窗口
+
+`ctrl + b` then `c ` 创建一个新窗口
+
+`ctrl + b` then `p` 切换到上一个窗口
+
+`ctrl + b` then `n`  切换到下一个窗口
+
+`ctrl + b` then `<number> ` 切换到指定编号的窗口
+
+`ctrl + b` then `w` 从列表中选择窗口
+
+`ctrl + b` then `,` 窗口重命名
+
 ## Ctrl + R使用
 
-Ctrl + R : 反向搜索（reverse-i-search) 连续按键继续搜索
+**Ctrl + R** : 反向搜索（reverse-i-search) 连续按键继续搜索
 
-Ctrl + S : 正向搜索 （i-search) 连续按键继续搜索
+**Ctrl + S** : 正向搜索 （i-search) 连续按键继续搜索
 
 Enter输入该命令
 
-Ctrl + G 或 Ctrl + C退出反向搜索模式
+**Ctrl + G** 或 Ctrl + C退出反向搜索模式
 
-Alt + . 插入最后一个参数，插入前一个命令的最后一个参数
+**Alt + .** 插入最后一个参数，插入前一个命令的最后一个参数
 
-Ctrl + J 选择当前命令
+**Ctrl + J** 选择当前命令
 
-Ctrl + O 直接执行当前命令，并选择当前命令的下一条命令
+**Ctrl + O** 直接执行当前命令，并选择当前命令的下一条命令
 
 ## 禁用Ctrl + S
 
