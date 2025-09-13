@@ -849,6 +849,74 @@ IPv4的地址格式为a.b.c.d，其中abcd表示0~255的数字，如192.168.88.1
 - 可以在端口绑定中用来确定绑定关系
 - 在一些IP地址中，表示所有IP的意思，如放行规则设置为0.0.0.0，表示允许任意IP访问
 
+### 修改IP地址
+
+### 1. **确定网络接口名称**
+
+```bash
+ip a
+```
+
+### 2. **修改网络配置文件**
+
+首先，进入 `netplan` 配置目录：
+
+```bash
+cd /etc/netplan/
+```
+
+一个 `.yaml` 文件（例如 `01-netcfg.yaml` 或类似的文件），使用文本编辑器打开该文件：
+
+```bash
+sudo nano 01-netcfg.yaml
+```
+
+### 3. **编辑配置文件**
+
+在配置文件中，找到对应的接口部分，然后修改 `dhcp4: true` 为 `dhcp4: false`，并手动配置静态 IP 地址。比如：
+
+```yaml
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp3s0:
+      dhcp4: false
+      addresses:
+        - 192.168.1.100/24  # 修改为你需要的 IP 地址
+      gateway4: 192.168.1.1  # 修改为你网关的 IP 地址
+      nameservers:
+        addresses:
+          - 8.8.8.8  # 修改为你需要的 DNS 地址
+          - 8.8.4.4
+```
+
+### 4. **应用修改**
+
+保存文件后，应用网络配置更改：
+
+```bash
+sudo netplan apply
+```
+
+### 5. **验证修改**
+
+检查新的 IP 地址是否已经生效：
+
+```bash
+ip a
+```
+
+### 6. **重启网络服务（可选）**
+
+有时，可能需要重启网络服务来确保修改生效：
+
+```bash
+sudo systemctl restart systemd-networkd
+```
+
+这样，你的 IP 地址就被永久设置为静态 IP，系统重启后依然有效。如果希望使用 `dhclient` 或其他方法自动获取 IP 地址，改回 `dhcp4: true` 即可。
+
 ## 主机名
 
 ```bash

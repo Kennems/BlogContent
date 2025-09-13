@@ -1,7 +1,7 @@
 ---
 title : '算法笔记（一）——基础+杂项（Python实现）'
 date : 2024-04-09T15:37:01+08:00
-lastmod: 2024-04-09T15:37:01+08:00
+lastmod: 2025-05-05T15:37:01+08:00
 description : "算法笔记（一）——基础+杂项（Python实现）" 
 image : img/cat.jpg
 draft : false    
@@ -36,6 +36,36 @@ n=int(input())
 arr=list(map(int, input().split()))
 quick_sort(arr,0,n-1)
 print(" ".join(map(str, arr)))
+```
+
+#### 随机选择`pivot`
+
+```py
+import random
+class Solution:
+    def sortArray(self, nums: List[int]) -> List[int]:
+        def quick_sort(q, l, r):
+            if l >= r:
+                return
+            # 随机选择 pivot
+            i, j = l, r
+            rand_idx = random.randint(l, r)
+            x = q[rand_idx]
+            while i <= j:
+                while q[i] < x:
+                    i += 1
+                while q[j] > x:
+                    j -= 1
+                if i <= j:
+                    q[i], q[j] = q[j], q[i]
+                    i += 1
+                    j -= 1
+            
+            quick_sort(q, l, j)
+            quick_sort(q, i, r)
+        
+        quick_sort(nums, 0, len(nums) - 1)
+        return nums
 ```
 
 ### 归并排序

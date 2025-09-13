@@ -1,15 +1,15 @@
 ---
-title : 'LeetCode每日一题（202405）'
+title : 'LeetCode每日一题（202501）'
 date : 2025-01-25T15:37:01+08:00
 lastmod: 2025-01-25T15:37:01+08:00
-description : "每日一题（202405）" 
+description : "每日一题（202501）" 
 image : img/cat.jpg
 draft : false    
 categories : ["LeetCode"]
 tags : ["LeetCode笔记"]
 ---
 
-# 每日一题（202405）
+# 每日一题（202501）
 
 ## 0124 [2944. 购买水果需要的最少金币数](https://leetcode.cn/problems/minimum-number-of-coins-for-fruits/)
 

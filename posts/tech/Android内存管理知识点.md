@@ -225,7 +225,7 @@ Android系统通过消息处理机制，确保在规定的时间间隔内处理�
 
 示例代码：
 
-```
+```java
 javaCopy codemBind.textView.setOnClickListener(new View.OnClickListener() {
     @Override
     public void onClick(View v) {

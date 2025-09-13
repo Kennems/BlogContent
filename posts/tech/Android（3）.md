@@ -12,6 +12,8 @@ tags : ["Android"]
 
 # Android（3）
 
+清楚自己是在为了什么而努力，以后能得到什么，你想要什么结果。
+
 ## 数据存储
 
 ### 共享参数的用法
@@ -835,9 +837,7 @@ public class LoginSQLliteActivity extends AppCompatActivity implements RadioGrou
 
 ```
 
-
-
-### 存储卡存储
+### 存储卡存储保存文本
 
 私有存储空间与公共存储空间
 
@@ -1054,7 +1054,7 @@ public class FileWriteActivity extends AppCompatActivity implements View.OnClick
 }
 ```
 
-### 存储卡保存图片
+### 存储卡存储保存图片
 
 ![image-20240624224319416](https://cdn.jsdelivr.net/gh/kennems/blog-image/image-20240624224319416.png)
 
