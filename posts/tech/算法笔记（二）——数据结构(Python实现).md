@@ -801,7 +801,7 @@ for i in range(m):
 
 ### 树状数组
 
-楼兰图腾
+#### 楼兰图腾
 
 ```py
 import sys
@@ -821,7 +821,7 @@ def add(x,v):
         tr[x]+=v
         x+=lowbit(x)
         
-def query(x):
+def query(x): # 返回sum
     res = 0
     while x:
         res+=tr[x]
@@ -839,6 +839,68 @@ for i in range(1,n+1):
     add(y,1)
     
 print(sumg, suml)
+```
+
+#### [3676. 碗子数组的数目](https://leetcode.cn/problems/count-bowl-subarrays/)
+
+```py
+class Fenwick:
+    def __init__(self, n):
+        self.n = n
+        self.tr = [0] * (n + 1)
+
+    def lowbit(self, x):
+        return x & -x
+
+    def add(self, i, v):
+        while i <= self.n:
+            self.tr[i] += v
+            i += self.lowbit(i)
+
+    def query(self, i):  # 返回sum
+        res = 0
+        while i:
+            res += self.tr[i]
+            i -= self.lowbit(i)
+        return res
+
+    # 找到第 k 个 1 出现的位置（1-based），假定 1 <= k <= total
+    def kth(self, k):
+        idx = 0
+        mask = 1 << (self.n.bit_length())  # 足够大的最高位
+        while mask:
+            nxt = idx + mask
+            if nxt <= self.n and self.tr[nxt] < k:
+                idx = nxt
+                k -= self.tr[nxt]
+            mask >>= 1
+        return idx + 1
+
+class Solution:
+    def bowlSubarrays(self, nums: List[int]) -> int:
+        n = len(nums)
+        order = sorted(range(n), key = lambda i:-nums[i])
+        f = Fenwick(n)
+        res = 0
+
+        for i in order:
+            idx = i + 1
+            left = f.query(idx - 1)
+            if left:
+                leftP = f.kth(left) - 1
+                if i - leftP >= 2:
+                    res += 1
+            
+            pre = f.query(idx)
+            tot = f.query(n)
+            right = tot - pre
+            if right:
+                rightP = f.kth(pre + 1) - 1
+                if rightP - i >= 2:
+                    res += 1
+
+            f.add(idx, 1)
+        return res
 ```
 
 ### 线段树
