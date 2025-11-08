@@ -5,7 +5,7 @@ lastmod: 2024-08-03T22:20:13+08:00
 description : "Kotlin学习笔记" 
 image : img/cat.jpg
 draft : false    
-categories : ["Android学习笔记"]
+categories : ["Kotlin学习笔记"]
 tags : ["Kotlin"]
 # password : leetcode
 ---
@@ -1538,8 +1538,6 @@ fun main() {
 ### 属性访问
 
 直接访问即可，实际上使用的还是get/set方法
-
-
 
 #### **@JvmName**
 

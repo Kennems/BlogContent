@@ -5,7 +5,7 @@ lastmod: 2024-08-13T22:20:13+08:00
 description : "Kotlin协程(1)" 
 image : img/cat.jpg
 draft : false    
-categories : ["Android学习笔记"]
+categories : ["Kotlin学习笔记"]
 tags : ["Kotlin"]
 ---
 # Kotlin协程(1)
@@ -243,6 +243,38 @@ class MainActivity7 : AppCompatActivity() {
 - ATOMIC：协程创建后，立即开始调度，协程执行到第一个挂起点之前不响应取消
 - LAZY：只有协程被需要时，包括主动调用协程的start，join或者await等函数时才会开始调度，如果调度前就被取消，那么该协程将直接进入异常结束状态
 - UNDISPATCHED：协程创建后立即在**当前函数调用栈**中执行，直到遇到第一个真正挂起的点
+
+```kotlin
+import kotlinx.coroutines.*
+
+fun main() = runBlocking {
+    val job1 = launch(start = CoroutineStart.DEFAULT) {
+        println("DEFAULT start")
+    }
+
+    val job2 = launch(start = CoroutineStart.ATOMIC) {
+        println("ATOMIC start")
+        delay(100)
+        println("ATOMIC end")
+    }
+
+    val job3 = async(start = CoroutineStart.LAZY) {
+        println("LAZY start")
+        42
+    }
+
+    val job4 = launch(start = CoroutineStart.UNDISPATCHED) {
+        println("UNDISPATCHED start")
+        delay(100)
+        println("UNDISPATCHED resumed")
+    }
+
+    println("Triggering lazy job...")
+    println(job3.await())
+
+    joinAll(job1, job2, job3, job4)
+}
+```
 
 ## coroutineScope 与 runBlocking
 

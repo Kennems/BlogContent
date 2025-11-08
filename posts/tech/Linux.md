@@ -264,6 +264,14 @@ grep -rl "your_word" .
 grep -rli "your_word" .
 ```
 
+### 显示行号
+
+通过 `-n` 选项来显示匹配行的行号
+
+```
+grep -n "pattern" filename
+```
+
 ## wc
 
 ```bash
@@ -655,13 +663,13 @@ useradd [-g -d] 用户名
 - 选项： -g指定用户的组，不指定-g，会创建同名组加入，指定-g需要组已经存在，如已存在同名组，必须使用-g。
 - 选项： -d指定用户HOME路径，不指定，HOME目录默认在： /home/用户名
 
-```
+```bash
 userdel [-r] 用户名
 ```
 
 - 选项：-r，删除用户的HOME目录，不使用-r，删除目录时，HOME目录保留
 
-```
+```bash
 id [用户名]
 ```
 
@@ -672,12 +680,116 @@ usermod -aG 用户组 用户名
 将指定用户加入指定用户组
 ```
 
+#### 查看系统中所有用户
+
+系统用户信息保存在 `/etc/passwd` 文件中。
+
 ```
-getent passwd
-getent group 
+cat /etc/passwd
 ```
 
-使用getent命令，可以查看当前系统内有那些命令
+示例输出：
+
+```
+root:x:0:0:root:/root:/bin/bash
+kennem:x:1000:1000:Kennem,,,:/home/kennem:/bin/bash
+```
+
+解释：
+
+- 每行一个用户，字段用 `:` 分隔：
+  1. 用户名
+  2. 密码占位符（x 表示影子密码存储在 `/etc/shadow`）
+  3. 用户 ID (UID)
+  4. 组 ID (GID)
+  5. 用户全名或描述
+  6. 家目录
+  7. 默认 shell
+
+##### 列出用户名
+
+```
+cut -d: -f1 /etc/passwd
+```
+
+只显示用户名列表。
+
+------
+
+#### 查看系统中所有用户组
+
+系统用户组信息保存在 `/etc/group` 文件。
+
+##### cat 查看
+
+```bash
+cat /etc/group
+```
+
+示例输出：
+
+```
+root:x:0:
+docker:x:999:kennem
+sudo:x:27:kennem
+```
+
+解释：
+
+- 每行一个用户组，字段用 `:` 分隔：
+  1. 组名
+  2. 密码占位符（通常是 x）
+  3. GID（组 ID）
+  4. 组内用户列表（逗号分隔）
+
+##### 列出组名
+
+```
+cut -d: -f1 /etc/group
+```
+
+只显示组名列表。
+
+------
+
+#### 查看当前用户所属组
+
+```
+groups
+```
+
+或
+
+```
+groups $USER
+```
+
+示例：
+
+```
+kennem : kennem sudo docker
+```
+
+表示当前用户 `kennem` 属于 `kennem`、`sudo` 和 `docker` 组。
+
+```bash
+getent passwd   # 列出所有用户（同 /etc/passwd）
+getent group    # 列出所有组（同 /etc/group）
+```
+
+使用`getent`命令，可以查看当前系统内有哪些用户和组
+
+- **查看某个用户详细信息**：
+
+```
+id kennem
+```
+
+示例输出：
+
+```
+uid=1000(kennem) gid=1000(kennem) groups=1000(kennem),27(sudo),999(docker)
+```
 
 七份信息：
 

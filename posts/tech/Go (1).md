@@ -1,7 +1,7 @@
 ---
 title : 'Go语言基础'
-date : 2025-01-25T15:37:01+08:00
-lastmod: 2025-01-25T15:37:01+08:00
+date : 2025-01-25T10:00:01+08:00
+lastmod: 2025-11-02T10:00:01+08:00
 description : "Go语言基础" 
 image : img/cat.jpg
 draft : false    
@@ -486,27 +486,137 @@ func main() {
 ### 4.2 在线词典
 
 ```go
+package main
+
 import (
-    "encoding/json"
-    "fmt"
-    "net/http"
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"os"
 )
 
-func getDefinition(word string) {
-    url := "https://api.dictionaryapi.dev
+type DictRequest struct {
+	TransType string `json:"trans_type"`
+	Source    string `json:"source"`
+	UserID    string `json:"user_id"`
+}
+
+type DictResponse struct {
+	Rc   int `json:"rc"`
+	Wiki struct {
+		KnownInLaguages int `json:"known_in_laguages"`
+		Description     struct {
+			Source string      `json:"source"`
+			Target interface{} `json:"target"`
+		} `json:"description"`
+		ID   string `json:"id"`
+		Item struct {
+			Source string `json:"source"`
+			Target string `json:"target"`
+		} `json:"item"`
+		ImageURL  string `json:"image_url"`
+		IsSubject string `json:"is_subject"`
+		Sitelink  string `json:"sitelink"`
+	} `json:"wiki"`
+	Dictionary struct {
+		Prons struct {
+			EnUs string `json:"en-us"`
+			En   string `json:"en"`
+		} `json:"prons"`
+		Explanations []string      `json:"explanations"`
+		Synonym      []string      `json:"synonym"`
+		Antonym      []string      `json:"antonym"`
+		WqxExample   [][]string    `json:"wqx_example"`
+		Entry        string        `json:"entry"`
+		Type         string        `json:"type"`
+		Related      []interface{} `json:"related"`
+		Source       string        `json:"source"`
+	} `json:"dictionary"`
+}
+
+func query(word string) {
+	client := &http.Client{}
+	request := DictRequest{TransType: "en2zh", Source: word}
+	buf, err := json.Marshal(request)
+	if err != nil {
+		log.Fatal(err)
+	}
+	var data = bytes.NewReader(buf)
+	req, err := http.NewRequest("POST", "https://api.interpreter.caiyunai.com/v1/dict", data)
+	if err != nil {
+		log.Fatal(err)
+	}
+	req.Header.Set("Connection", "keep-alive")
+	req.Header.Set("DNT", "1")
+	req.Header.Set("os-version", "")
+	req.Header.Set("sec-ch-ua-mobile", "?0")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36")
+	req.Header.Set("app-name", "xy")
+	req.Header.Set("Content-Type", "application/json;charset=UTF-8")
+	req.Header.Set("Accept", "application/json, text/plain, */*")
+	req.Header.Set("device-id", "")
+	req.Header.Set("os-type", "web")
+	req.Header.Set("X-Authorization", "token:xxx")
+	req.Header.Set("Origin", "https://fanyi.caiyunapp.com")
+	req.Header.Set("Sec-Fetch-Site", "cross-site")
+	req.Header.Set("Sec-Fetch-Mode", "cors")
+	req.Header.Set("Sec-Fetch-Dest", "empty")
+	req.Header.Set("Referer", "https://fanyi.caiyunapp.com/")
+	req.Header.Set("Accept-Language", "zh-CN,zh;q=0.9")
+	req.Header.Set("Cookie", "_ym_uid=16456948721020430059; _ym_d=1645694872")
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer resp.Body.Close()
+	bodyText, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if resp.StatusCode != 200 {
+		log.Fatal("bad StatusCode:", resp.StatusCode, "body", string(bodyText))
+	}
+	var dictResponse DictResponse
+	err = json.Unmarshal(bodyText, &dictResponse)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(word, "UK:", dictResponse.Dictionary.Prons.En, "US:", dictResponse.Dictionary.Prons.EnUs)
+	for _, item := range dictResponse.Dictionary.Explanations {
+		fmt.Println(item)
+	}
+}
+
+func main() {
+	if len(os.Args) != 2 {
+		fmt.Fprintf(os.Stderr, `usage: simpleDict WORD
+example: simpleDict hello
+		`)
+		os.Exit(1)
+	}
+	word := os.Args[1]
+	query(word)
+}
 ```
 
-
-
-好的，以下是我为你准备的关于 **SOCKS5 代理服务器** 的 Go 语言代码的详细注释版，力求保持代码的完整性并加上详细的解释。
+```shell
+ken@Ken:/mnt/d/Go/go-demo/02-Go语言的实战案例/02-simpledict/v4$ ./simpledict hello
+hello UK: [ˈheˈləu] US: [həˈlo]
+int.喂;哈罗
+n.引人注意的呼声
+v.向人呼(喂)
+```
 
 ------
 
-# SOCKS5 代理服务器代码实现
+### 4.3 SOCKS5 代理服务器代码实现
 
-## 1. SOCKS5 协议概述
+#### 1. SOCKS5 协议概述
 
-### 1.1 SOCKS5 代理原理
+##### 1.1 SOCKS5 代理原理
 
 SOCKS5 是一种代理协议，在网络中充当客户端与目标服务器之间的中介，允许客户端通过代理服务器访问远程资源，通常用于规避防火墙、提高安全性等。
 
@@ -519,63 +629,65 @@ SOCKS5 是一种代理协议，在网络中充当客户端与目标服务器之�
 
 ------
 
-## 2. TCP Echo 服务器
+#### 2. TCP Echo 服务器
 
 首先，我们需要实现一个简单的 TCP Echo 服务器，处理从客户端发送的数据，并返回相同的数据。
 
-### 2.1 TCP Echo 服务器代码
+##### 2.1 TCP Echo 服务器代码
 
 ```go
 package main
 
 import (
-    "bufio"
-    "fmt"
-    "log"
-    "net"
+	"bufio"
+	"fmt"
+	"net"
 )
 
 func main() {
-    server, err := net.Listen("tcp", "127.0.0.1:1080") // 监听本地1080端口
-    if err != nil {
-        panic(err) // 如果监听失败，则程序崩溃
-    }
-    for {
-        client, err := server.Accept() // 接受来自客户端的连接
-        if err != nil {
-            log.Printf("Accept failed %v", err)
-            continue
-        }
-        go process(client) // 启动一个新的goroutine处理该连接
-    }
+	server, err := net.Listen("tcp", "127.0.0.1:1080")
+	if err != nil {
+		panic(err)
+	}
+
+	for {
+		client, err := server.Accept()
+		if err != nil {
+			fmt.Errorf("accept error: %w", err)
+			continue
+		}
+		go process(client)
+	}
 }
 
-// 处理连接的函数
 func process(conn net.Conn) {
-    defer conn.Close()  // 函数退出时关闭连接，避免资源泄漏
-    reader := bufio.NewReader(conn) // 创建一个缓冲读取器，优化性能
+	defer conn.Close()
+	reader := bufio.NewReader(conn)
 
-    for {
-        b, err := reader.ReadByte() // 读取单个字节
-        if err != nil {
-            break // 如果读取错误，则退出循环
-        }
-        _, err = conn.Write([]byte{b}) // 将字节写回客户端
-        if err != nil {
-            break // 如果写入错误，则退出循环
-        }
-    }
+	for {
+		buf, err := reader.ReadByte()
+		if err != nil {
+			fmt.Errorf("read buf error: %w", err)
+			return
+		}
+		_, err = conn.Write([]byte{buf})
+		if err != nil {
+			fmt.Errorf("write buf back error: %w", err)
+			return
+		}
+	}
 }
+
 ```
 
-### 2.2 代码说明：
+##### 2.2 代码说明：
 
 - **net.Listen**：在本地创建一个监听指定端口的服务器（这里是 `127.0.0.1:1080`）。
 - **Accept**：接受客户端连接请求并返回一个连接对象。
 - **process**：启动一个新的 goroutine 来处理客户端的请求。`bufio.NewReader` 用于提高从网络连接读取数据的效率。
 - **conn.Write**：将客户端输入的字节数据发送回去，形成“echo”响应。
 
-### 2.3 测试方法：
+##### 2.3 测试方法：
 
 可以使用 `nc`（netcat）工具来测试：
 
@@ -587,150 +699,630 @@ nc 127.0.0.1 1080
 
 ------
 
-## 3. SOCKS5 代理认证实现
+#### 3. SOCKS5 代理认证实现
 
-### 3.1 定义常量
-
-```go
-const socks5Ver = 0x05 // SOCKS5 协议版本
-const cmdBind = 0x01   // 绑定命令
-const atypIPV4 = 0x01  // IPv4 地址类型
-const atypeHOST = 0x03 // 主机名类型
-const atypeIPV6 = 0x04 // IPv6 地址类型
-```
-
-### 3.2 认证函数
+##### 3.1 代码
 
 ```go
-func auth(reader *bufio.Reader, conn net.Conn) (err error) {
-    // 读取 SOCKS5 协议版本
-    ver, err := reader.ReadByte()
-    if err != nil {
-        return fmt.Errorf("read ver failed:%w", err)
-    }
-    if ver != socks5Ver {
-        return fmt.Errorf("not supported ver: %v", ver)
-    }
+package main
 
-    // 读取认证方法的数量
-    methodSize, err := reader.ReadByte()
-    if err != nil {
-        return fmt.Errorf("read methodSize failed:%w", err)
-    }
+import (
+	"bufio"
+	"context"
+	"fmt"
+	"io"
+	"log"
+	"net"
+	"time"
+)
 
-    // 读取所有认证方法
-    method := make([]byte, methodSize)
-    _, err = io.ReadFull(reader, method)
-    if err != nil {
-        return fmt.Errorf("read method failed:%w", err)
-    }
+const (
+	socks5Ver  = 0x05
+	cmdConnect = 0x01
+	atypeIPV4  = 0x01
+	atypeHOST  = 0x03
+	atypeIPV6  = 0x04
+)
 
-    // 打印协议版本与认证方法
-    log.Panicln("ver", ver, "method", method)
+func main() {
+	addr := "127.0.0.1:1080"
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		log.Fatalf("listen failed: %v", err)
+	}
+	defer listener.Close()
 
-    // 返回不需要认证的响应
-    _, err = conn.Write([]byte{socks5Ver, 0x00}) // 0x00 表示无需认证
-    if err != nil {
-        return fmt.Errorf("write failed:%w", err)
-    }
-    return nil
+	log.Println("SOCKS5 server listening on", addr)
+
+	for {
+		client, err := listener.Accept()
+		if err != nil {
+			log.Println("accept failed:", err)
+			continue
+		}
+		go handleClient(client)
+	}
 }
-```
 
-### 3.3 代码说明：
+func handleClient(conn net.Conn) {
+	defer conn.Close()
+	reader := bufio.NewReader(conn)
 
-- **ReadByte**：逐字节读取协议中的数据，例如版本号和认证方法的数量。
-- **io.ReadFull**：确保将指定长度的数据完全读取。
-- **conn.Write**：向客户端返回响应，表示认证成功。
+	// 1️⃣ 认证阶段
+	if err := auth(reader, conn); err != nil {
+		log.Println("auth failed:", err)
+		return
+	}
+	log.Println("auth success from", conn.RemoteAddr())
 
-------
-
-## 4. SOCKS5 请求阶段
-
-在请求阶段，代理服务器接收到客户端发来的连接请求，并解析其中的目标地址和端口信息。
-
-### 4.1 连接请求解析
-
-```go
-func connect(reader *bufio.Reader, conn net.Conn) (err error) {
-    ver, err := reader.ReadByte() // 读取版本号
-    if err != nil {
-        return fmt.Errorf("read ver failed:%w", err)
-    }
-
-    cmd, err := reader.ReadByte() // 读取命令类型
-    if err != nil {
-        return fmt.Errorf("read cmd failed:%w", err)
-    }
-
-    rsv, err := reader.ReadByte() // 保留字段，忽略
-    if err != nil {
-        return fmt.Errorf("read rsv failed:%w", err)
-    }
-
-    atyp, err := reader.ReadByte() // 地址类型
-    if err != nil {
-        return fmt.Errorf("read atyp failed:%w", err)
-    }
-
-    var addr string
-    switch atyp {
-    case atypIPV4:
-        addr = readIPV4(reader) // 读取IPv4地址
-    case atypeHOST:
-        addr = readHost(reader) // 读取主机名
-    case atypeIPV6:
-        addr = readIPV6(reader) // 读取IPv6地址
-    }
-
-    // 读取端口
-    port := readPort(reader)
-
-    log.Printf("Connecting to %s:%d", addr, port) // 打印目标地址和端口
-
-    return nil
+	// 2️⃣ CONNECT 请求
+	if err := connect(reader, conn); err != nil {
+		log.Println("connect failed:", err)
+		return
+	}
 }
-```
 
-### 4.2 代码说明：
+func auth(reader *bufio.Reader, conn net.Conn) error {
+	ver, err := reader.ReadByte()
+	if err != nil {
+		return fmt.Errorf("read ver failed:%w", err)
+	}
+	if ver != socks5Ver {
+		return fmt.Errorf("unsupported ver:%d", ver)
+	}
+	methodSize, err := reader.ReadByte()
+	if err != nil {
+		return fmt.Errorf("read method size failed:%w", err)
+	}
+	method := make([]byte, methodSize)
+	if _, err = io.ReadFull(reader, method); err != nil {
+		return fmt.Errorf("read method failed:%w", err)
+	}
+	// 回复无需认证
+	_, err = conn.Write([]byte{socks5Ver, 0x00})
+	return err
+}
 
-- **cmd**：检查请求类型，SOCKS5 代理服务器通常只处理 `CONNECT` 请求。
-- **atyp**：根据目标地址类型（IPv4、主机名、IPv6）分别处理。
-- **readIPV4/readHost/readIPV6/readPort**：读取不同地址类型的数据。
+func connect(reader *bufio.Reader, conn net.Conn) error {
+	ver, _ := reader.ReadByte()
+	cmd, _ := reader.ReadByte()
+	rsv, _ := reader.ReadByte()
+	if ver != socks5Ver || cmd != cmdConnect || rsv != 0x00 {
+		return fmt.Errorf("invalid header")
+	}
 
-------
+	atype, _ := reader.ReadByte()
+	var addr string
+	switch atype {
+	case atypeIPV4:
+		addr = readIPV4(reader)
+	case atypeHOST:
+		addr = readHost(reader)
+	case atypeIPV6:
+		addr = readIPV6(reader)
+	default:
+		return fmt.Errorf("unknown atype %v", atype)
+	}
+	port := readPort(reader)
+	targetAddr := fmt.Sprintf("%s:%d", addr, port)
 
-## 5. SOCKS5 中继阶段
+	// 🔗 连接目标服务器
+	target, err := net.Dial("tcp", targetAddr)
+	if err != nil {
+		conn.Write([]byte{socks5Ver, 0x01, 0x00, atypeIPV4, 0, 0, 0, 0, 0, 0})
+		return fmt.Errorf("connect to target failed: %v", err)
+	}
+	defer target.Close()
 
-在中继阶段，代理服务器通过双向数据转发来实现代理服务，直到数据传输结束或发生错误。
+	// 回复成功
+	conn.Write([]byte{socks5Ver, 0x00, 0x00, atypeIPV4, 0, 0, 0, 0, 0, 0})
 
-### 5.1 数据转发
+	// 🔁 开始转发
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	relay(reader, conn, target, ctx)
+	return nil
+}
 
-```go
+func readIPV4(reader *bufio.Reader) string {
+	buf := make([]byte, 4)
+	io.ReadFull(reader, buf)
+	return fmt.Sprintf("%d.%d.%d.%d", buf[0], buf[1], buf[2], buf[3])
+}
+func readHost(reader *bufio.Reader) string {
+	l, _ := reader.ReadByte()
+	buf := make([]byte, l)
+	io.ReadFull(reader, buf)
+	return string(buf)
+}
+func readIPV6(reader *bufio.Reader) string {
+	buf := make([]byte, 16)
+	io.ReadFull(reader, buf)
+	return fmt.Sprintf("%x", buf)
+}
+func readPort(reader *bufio.Reader) uint16 {
+	buf := make([]byte, 2)
+	io.ReadFull(reader, buf)
+	return (uint16(buf[0]) << 8) | uint16(buf[1])
+}
+
 func relay(reader *bufio.Reader, conn net.Conn, targetConn net.Conn, ctx context.Context) {
-    go io.Copy(targetConn, conn) // 从客户端读取数据并发送到目标服务器
-    go io.Copy(conn, targetConn) // 从目标服务器读取数据并发送到客户端
+	go io.Copy(targetConn, conn)
+	io.Copy(conn, targetConn)
 
-    <-ctx.Done() // 等待任意一个数据转发完成或发生错误
+	<-ctx.Done()
 }
+
 ```
 
-### 5.2 代码说明：
+##### 3.2 代码说明：
 
-- **io.Copy**：标准库提供的用于数据转发的函数。
-- **ctx.Done()**：使用 `context` 来控制数据传输的终止条件。当 `context` 被取消时，数据传输终止。
+**main()**：启动服务器，监听 `127.0.0.1:1080`，每有新连接就创建一个协程处理。
 
-------
+**handleClient()**：处理每个客户端连接，包括认证和建立转发。
 
-## 6. 最终测试
+**auth()**：执行 SOCKS5 认证，这里固定返回“无需认证”。
+
+**connect()**：解析客户端请求，获取目标地址和端口，建立到目标服务器的 TCP 连接。
+
+**relay()**：在客户端和目标服务器之间进行数据转发。
+
+**readIPV4/readHost/readIPV6/readPort()**：负责解析不同格式的地址。
+
+##### 3.3 最终测试
 
 测试时，可以通过在浏览器中设置 SOCKS5 代理，或者使用 `curl` 命令来进行请求：
 
 ```bash
-curl --socks5 127.0.0.1:1080 http://example.com
+curl --socks5-hostname 127.0.0.1:1080 http://example.com
 ```
 
-在测试时，代理服务器将转发请求，最终浏览器或工具可以通过 SOCKS5 代理成功访问目标服务器。
+### 4.4 消息系统
 
-------
+由服务器和客户端构建的简易消息系统
+
+#### main.go
+
+```go
+package main
+
+func main() {
+	server := NewServer("127.0.0.1", 8889)
+	server.Start()
+}
+```
+
+#### server.go
+
+```go
+package main
+
+import (
+	"fmt"
+	"io"
+	"net"
+	"sync"
+	"time"
+)
+
+type Server struct {
+	Ip   string
+	Port int
+
+	OnlineMap map[string]*User
+	mapLock   sync.RWMutex
+	Message   chan string
+}
+
+func NewServer(ip string, port int) *Server {
+	server := &Server{
+		Ip:        ip,
+		Port:      port,
+		OnlineMap: make(map[string]*User),
+		Message:   make(chan string),
+	}
+	return server
+}
+
+func (this *Server) BroadCast(user *User, msg string) {
+	sendMsg := "[" + user.Addr + "]" + user.Name + ":" + " msg: " + msg
+	this.Message <- sendMsg
+	fmt.Printf(" 广播发送成功 %s \n", sendMsg)
+}
+
+func (this *Server) MessageListener() {
+	for {
+		msg := <-this.Message
+
+		this.mapLock.Lock()
+		for _, client := range this.OnlineMap {
+			client.C <- msg
+		}
+		this.mapLock.Unlock()
+	}
+}
+
+func (this *Server) Handler(conn net.Conn) {
+	//fmt.Println("链接建立成功")
+	//defer conn.Close()
+
+	user := NewUser(conn, this)
+	user.Online()
+
+	isLive := make(chan bool)
+
+	go func() {
+		buf := make([]byte, 4096)
+		for {
+			n, err := conn.Read(buf)
+			if n == 0 {
+				user.Offline()
+				return
+			}
+			if err != nil && err != io.EOF {
+				fmt.Println("conn.Read err:", err)
+				return
+			}
+			// 去除 \n
+			user.DoMessage(string(buf[:n-1]))
+
+			isLive <- true
+		}
+	}()
+
+	// 当前handler阻塞
+	for {
+		select {
+		case <-isLive:
+			{
+
+			}
+		case <-time.After(time.Second * 60):
+			{
+				user.SendMsg("你被踢了")
+				close(user.C)
+				conn.Close()
+
+				fmt.Printf("用户 %s 被踢了 \n", user.Name)
+				// 退出当前handler
+				return // runtime.Goexit()
+			}
+		}
+	}
+}
+
+func (this *Server) Start() {
+
+	// socket listen
+	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", this.Ip, this.Port))
+	if err != nil {
+		fmt.Println("net.Listen err:", err)
+		return
+	}
+
+	// close listener
+	defer listener.Close()
+
+	go this.MessageListener()
+
+	// accept
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			fmt.Println("listener.Accept err:", err)
+			continue
+		} else {
+			fmt.Println("链接建立成功")
+		}
+
+		// do handler
+		go this.Handler(conn)
+	}
+}
+```
+
+#### client.go
+
+```go
+package main
+
+import (
+	"bufio"
+	"flag"
+	"fmt"
+	"io"
+	"net"
+	"os"
+	"strings"
+)
+
+type Client struct {
+	ServerIp   string
+	ServerPort int
+	Name       string
+	conn       net.Conn
+	flag       int
+}
+
+var reader *bufio.Reader
+
+func NewClient(serverIp string, serverPort int) *Client {
+
+	client := &Client{
+		ServerIp:   serverIp,
+		ServerPort: serverPort,
+		flag:       9999,
+	}
+
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", serverIp, serverPort))
+	if err != nil {
+		fmt.Println("net.Dial error:", err)
+		return nil
+	}
+	client.conn = conn
+
+	return client
+}
+
+func (client *Client) DealResponse() {
+	io.Copy(os.Stdout, client.conn)
+}
+
+func (client *Client) menu() bool {
+	var flag int
+	fmt.Println("1、公聊模式")
+	fmt.Println("2、私聊模式")
+	fmt.Println("3、更新用户名")
+	fmt.Println("0、退出")
+	fmt.Scanln(&flag)
+
+	if flag >= 0 && flag <= 3 {
+		client.flag = flag
+		return true
+	} else {
+		fmt.Println("输入有误，请重新输入")
+		return false
+	}
+}
+
+func (client *Client) UpdateName() bool {
+	fmt.Println("请输入用户名:")
+	client.Name, _ = reader.ReadString('\n')
+	client.Name = strings.TrimSpace(client.Name)
+
+	sendMsg := "rename|" + client.Name + "\n"
+	_, err := client.conn.Write([]byte(sendMsg))
+	if err != nil {
+		fmt.Println("UpdateName error:", err)
+		return false
+	}
+
+	return true
+}
+
+func (client *Client) PublicChat() {
+	var chatMsg string
+	fmt.Println("请输入聊天内容，exit退出:")
+	chatMsg, _ = reader.ReadString('\n')
+	chatMsg = strings.TrimSpace(chatMsg)
+
+	for chatMsg != "exit" {
+		if len(chatMsg) != 0 {
+			sendMsg := chatMsg + "\n"
+			_, err := client.conn.Write([]byte(sendMsg))
+			if err != nil {
+				fmt.Println("write error:", err)
+				break
+			}
+		}
+
+		chatMsg = ""
+		fmt.Println("请输入聊天内容，exit退出:")
+		chatMsg, _ = reader.ReadString('\n')
+		chatMsg = strings.TrimSpace(chatMsg)
+	}
+}
+
+func (client *Client) selectUsers() {
+	sendMsg := "who\n"
+	_, err := client.conn.Write([]byte(sendMsg))
+	if err != nil {
+		fmt.Println("selectUsers error:", err)
+	}
+}
+
+func (client *Client) PrivateChat() {
+	var remoteName string
+	var chatMsg string
+
+	client.selectUsers()
+	fmt.Println("请输入聊天对象的用户名， exit退出")
+	remoteName, _ = reader.ReadString('\n')
+	remoteName = strings.TrimSpace(remoteName)
+
+	for remoteName != "exit" {
+		fmt.Println("请输入聊天内容，exit退出:")
+		chatMsg, _ = reader.ReadString('\n')
+		chatMsg = strings.TrimSpace(chatMsg)
+
+		for chatMsg != "exit" {
+			if len(chatMsg) != 0 {
+				sendMsg := "to|" + remoteName + "|" + chatMsg + "\n"
+				_, err := client.conn.Write([]byte(sendMsg))
+				if err != nil {
+					fmt.Println("write error:", err)
+					break
+				}
+			}
+
+			chatMsg = ""
+			fmt.Println("请输入聊天内容，exit退出:")
+			chatMsg, _ = reader.ReadString('\n')
+			chatMsg = strings.TrimSpace(chatMsg)
+		}
+
+		client.selectUsers()
+		fmt.Println("请输入聊天对象，exit退出")
+		remoteName, _ = reader.ReadString('\n')
+		remoteName = strings.TrimSpace(remoteName)
+	}
+}
+
+func (client *Client) Run() {
+	for client.flag != 0 {
+		for client.menu() != true {
+
+		}
+		switch client.flag {
+		case 1:
+			client.PublicChat()
+			break
+		case 2:
+			fmt.Println("私聊模式")
+			client.PrivateChat()
+			break
+		case 3:
+			client.UpdateName()
+			break
+		}
+	}
+}
+
+var serverIp string
+var serverPort int
+
+func init() {
+	flag.StringVar(&serverIp, "ip", "127.0.0.1", "set server ip")
+	flag.IntVar(&serverPort, "port", 8889, "set server port")
+}
+
+func main() {
+	// 命令行解析
+	flag.Parse()
+	reader = bufio.NewReader(os.Stdin) // 初始化全局 reader
+
+	client := NewClient(serverIp, serverPort)
+	if client == nil {
+		fmt.Println("Connect to the server successfully")
+		return
+	}
+
+	go client.DealResponse()
+
+	fmt.Println("Connect to the server success")
+	client.Run()
+}
+```
+
+#### user.go
+
+```go
+package main
+
+import (
+	"net"
+	"strings"
+)
+
+type User struct {
+	Name string
+	Addr string
+	C    chan string
+	conn net.Conn
+
+	server *Server
+}
+
+func NewUser(conn net.Conn, server *Server) *User {
+	userAddr := conn.RemoteAddr().String()
+	user := &User{
+		Name: userAddr,
+		Addr: userAddr,
+		C:    make(chan string),
+		conn: conn,
+
+		server: server,
+	}
+
+	go user.ListenMessage()
+
+	return user
+}
+
+func (this *User) Online() {
+	// 用户上线， 将用户加到onlineMap中
+	this.server.mapLock.Lock()
+	this.server.OnlineMap[this.Name] = this
+	this.server.mapLock.Unlock()
+	this.server.BroadCast(this, "已上线")
+}
+
+func (this *User) Offline() {
+	this.server.mapLock.Lock()
+	delete(this.server.OnlineMap, this.Name)
+	this.server.mapLock.Unlock()
+	this.server.BroadCast(this, "已下线")
+}
+
+func (this *User) SendMsg(msg string) {
+	this.conn.Write([]byte(msg))
+}
+
+func (this *User) DoMessage(msg string) {
+	if msg == "who" {
+		this.server.mapLock.Lock()
+
+		for _, user := range this.server.OnlineMap {
+			onlineMsg := "[" + user.Addr + "]" + user.Name + ":" + "在线。。。\n"
+			this.SendMsg(onlineMsg)
+		}
+
+		this.server.mapLock.Unlock()
+	} else if len(msg) > 7 && msg[:7] == "rename|" {
+		newName := strings.Split(msg, "|")[1]
+
+		_, ok := this.server.OnlineMap[newName]
+		if ok {
+			this.SendMsg("当前用户名被使用\n")
+		} else {
+			this.server.mapLock.Lock()
+			delete(this.server.OnlineMap, this.Name)
+			this.server.OnlineMap[newName] = this
+			this.server.mapLock.Unlock()
+
+			this.Name = newName
+			this.SendMsg("您已更新用户名" + newName + "\n")
+		}
+	} else if len(msg) > 4 && msg[:3] == "to|" {
+		remoteName := strings.Split(msg, "|")[1]
+		if remoteName == "" {
+			this.SendMsg("消息格式不正确， 请使用 \"to|张三|你好啊\" 格式。 \n")
+			return
+		}
+
+		remoteUser, ok := this.server.OnlineMap[remoteName]
+		if !ok {
+			this.SendMsg("该用户不存在\n")
+			return
+		}
+
+		content := strings.Split(msg, "|")[2]
+		if content == "" {
+			this.SendMsg("消息格式不正确， 请使用 \"to|张三|你好啊\" 形式发送消息。 \n")
+			return
+		}
+		remoteUser.SendMsg(this.Name + "对你说：" + content + "\n")
+
+	} else {
+		this.server.BroadCast(this, msg)
+	}
+}
+
+func (this *User) ListenMessage() {
+	for {
+		msg := <-this.C
+		this.conn.Write([]byte(msg + "\n"))
+	}
+}
+```
 

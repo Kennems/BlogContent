@@ -5,7 +5,7 @@ lastmod: 2024-08-13T22:20:13+08:00
 description : "Kotlin协程(4)" 
 image : img/cat.jpg
 draft : false    
-categories : ["Android学习笔记"]
+categories : ["Kotlin学习笔记"]
 tags : ["Kotlin"]
 ---
 
@@ -38,7 +38,7 @@ binding.textView.text = "Hello World"
     android:text="@{user.name}"/>
 ```
 
-Activity中：
+Activity 中：
 
 ```kotlin
 val binding: ActivityMainBinding = DataBindingUtil.setContentView(this, R.layout.activity_main)
