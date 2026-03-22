@@ -1,7 +1,7 @@
 ---
 title : 'HTML 字体'
 date : 2025-03-16T10:30:13+08:00
-lastmod: 2025-11-08T10:40:13+08:00
+lastmod: 2025-11-09T10:40:13+08:00
 description : "HTML 字体" 
 categories : ["HTML 字体"]
 tags : ["Web"]
@@ -221,42 +221,42 @@ tags : ["Web"]
 **常见字体**：
 
 * **微软雅黑**（Microsoft YaHei）
-* **宋体**（SimSun）
 * **黑体**（SimHei）
+* **宋体**（SimSun）
 * **楷体**（Kaiti）
 
 #### 示例效果（Windows）
-
-<div style="font-family: SimHei; border:1px solid #ccc; padding:10px; margin-bottom:10px;">
-  这是一段使用 Windows 常用中文字体（微软雅黑）的示例文本。 The quick brown fox jumps over the lazy dog.
-</div>
 
 <div style="font-family: 'Microsoft YaHei'; border:1px solid #ccc; padding:10px; margin-bottom:10px;">
   这是一段使用 Windows 常用中文字体（微软雅黑）的示例文本。 The quick brown fox jumps over the lazy dog.
 </div>
 
+<div style="font-family: SimHei; border:1px solid #ccc; padding:10px; margin-bottom:10px;">
+  这是一段使用 Windows 常用中文字体（黑体）的示例文本。 The quick brown fox jumps over the lazy dog.
+</div>
+
 <div style="font-family: SimSun; border:1px solid #ccc; padding:10px; margin-bottom:10px;">
-  这是一段使用 Windows 常用中文字体（微软雅黑）的示例文本。 The quick brown fox jumps over the lazy dog.
+  这是一段使用 Windows 常用中文字体（宋体）的示例文本。 The quick brown fox jumps over the lazy dog.
 </div>
 
 <div style="font-family: Kaiti; border:1px solid #ccc; padding:10px; margin-bottom:10px;">
-  这是一段使用 Windows 常用中文字体（微软雅黑）的示例文本。 The quick brown fox jumps over the lazy dog.
+  这是一段使用 Windows 常用中文字体（楷体）的示例文本。 The quick brown fox jumps over the lazy dog.
 </div>
 
 #### 示例代码
 
 ```html
-<div style="font-family: 'Microsoft YaHei';">
+<div style="font-family: 'Microsoft YaHei'">
   这是一段使用 Windows 常用中文字体（微软雅黑）的示例文本。 The quick brown fox jumps over the lazy dog.
 </div>
-<div style="font-family: SimSun; border:1px solid #ccc; padding:10px; margin-bottom:10px;">
-  这是一段使用 Windows 常用中文字体（微软雅黑）的示例文本。 The quick brown fox jumps over the lazy dog.
+<div style="font-family: SimHei">
+  这是一段使用 Windows 常用中文字体（黑体）的示例文本。 The quick brown fox jumps over the lazy dog.
+</div>
+<div style="font-family: SimSun">
+  这是一段使用 Windows 常用中文字体（宋体）的示例文本。 The quick brown fox jumps over the lazy dog.
 </div>
 <div style="font-family: Kaiti; border:1px solid #ccc; padding:10px; margin-bottom:10px;">
-  这是一段使用 Windows 常用中文字体（微软雅黑）的示例文本。 The quick brown fox jumps over the lazy dog.
-</div>
-<div style="font-family: SimHei; border:1px solid #ccc; padding:10px; margin-bottom:10px;">
-  这是一段使用 Windows 常用中文字体（微软雅黑）的示例文本。 The quick brown fox jumps over the lazy dog.
+  这是一段使用 Windows 常用中文字体（楷体）的示例文本。 The quick brown fox jumps over the lazy dog.
 </div>
 ```
 
@@ -276,24 +276,24 @@ tags : ["Web"]
   这是一段使用 macOS 常用中文字体（华文细黑）的示例文本。 The quick brown fox jumps over the lazy dog.
 </div>
 <div style="font-family: STKaiti; border:1px solid #ccc; padding:10px; margin-bottom:10px;">
-  这是一段使用 macOS 常用中文字体（华文细黑）的示例文本。 The quick brown fox jumps over the lazy dog.
+  这是一段使用 macOS 常用中文字体（华文楷体）的示例文本。 The quick brown fox jumps over the lazy dog.
+</div>
+<div style="font-family: STSong; border:1px solid #ccc; padding:10px; margin-bottom:10px;">
+  这是一段使用 macOS 常用中文字体（华文宋体）的示例文本。 The quick brown fox jumps over the lazy dog.
 </div>
 
-<div style="font-family: STSong; border:1px solid #ccc; padding:10px; margin-bottom:10px;">
-  这是一段使用 macOS 常用中文字体（华文细黑）的示例文本。 The quick brown fox jumps over the lazy dog.
-</div>
 
 #### 示例代码
 
 ```html
-<div style="font-family: STXihei;">
+<div style="font-family: STXihei">
   这是一段使用 macOS 常用中文字体（华文细黑）的示例文本。 The quick brown fox jumps over the lazy dog.
 </div>
-<div style="font-family: STKaiti; border:1px solid #ccc; padding:10px; margin-bottom:10px;">
-  这是一段使用 macOS 常用中文字体（华文细黑）的示例文本。 The quick brown fox jumps over the lazy dog.
+<div style="font-family: STKaiti">
+  这是一段使用 macOS 常用中文字体（华文楷体）的示例文本。 The quick brown fox jumps over the lazy dog.
 </div>
-<div style="font-family: STSong; border:1px solid #ccc; padding:10px; margin-bottom:10px;">
-  这是一段使用 macOS 常用中文字体（华文细黑）的示例文本。 The quick brown fox jumps over the lazy dog.
+<div style="font-family: STSong">
+  这是一段使用 macOS 常用中文字体（华文宋体）的示例文本。 The quick brown fox jumps over the lazy dog.
 </div>
 ```
 

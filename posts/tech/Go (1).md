@@ -452,6 +452,787 @@ if err != nil {
 fmt.Println(n) // 输出123
 ```
 
+### **3.11 接口**
+
+Go 的接口（interface）通过**方法集合**定义行为。只要一个类型拥有接口要求的全部方法，它就**自动实现**该接口，无需显式声明。
+
+接口的典型用途是：
+ **解耦依赖、方便测试、实现多态。**
+
+------
+
+#### **3.11.1 接口定义**
+
+使用 `type` 定义接口，接口中只包含方法签名：
+
+```go
+type DB interface {
+    Query(sql string) string
+}
+```
+
+任何类型只要实现了 `Query` 方法，就自动实现了 `DB` 接口。
+
+------
+
+#### **3.11.2 实现接口（隐式实现）**
+
+无需写“implements”。结构体只要提供同名方法即可：
+
+```go
+type MySQL struct{}
+
+func (m MySQL) Query(sql string) string {
+    return "real data"
+}
+```
+
+现在 `MySQL` 就实现了 `DB`。
+
+------
+
+#### **3.11.3 使用接口（面向接口编程）**
+
+函数依赖接口，而不是具体实现：
+
+```go
+func FetchUser(db DB) string {
+    return db.Query("SELECT * FROM user")
+}
+```
+
+调用时可以传入任何实现了 `DB` 的对象：
+
+```go
+mysql := MySQL{}
+fmt.Println(FetchUser(mysql))
+```
+
+------
+
+#### **3.11.4 使用接口进行 Mock 测试**
+
+接口最重要的价值之一是：
+ **在测试中轻松替换依赖。**
+
+示例：创建 Mock 实现
+
+```go
+type MockDB struct{}
+
+func (m MockDB) Query(sql string) string {
+    return "fake data"
+}
+```
+
+测试时替换真实数据库：
+
+```go
+mock := MockDB{}
+fmt.Println(FetchUser(mock)) // 输出 fake data
+```
+
+这样可以避免依赖真实数据库，提升测试效率。
+
+### **3.12 反射**
+
+**反射**是 Go 提供的一种强大机制，允许程序在运行时检查类型、获取值、甚至修改值。反射通过 `reflect` 包实现，可以动态地获取或修改对象的类型和数据。它主要用于需要动态决定对象类型和操作的场景，比如 JSON 序列化、数据库 ORM 等。
+
+#### **3.12.1 反射的基本操作**
+
+1. **TypeOf**：返回一个值的类型。
+2. **ValueOf**：返回一个值的具体值，可以访问其底层数据。
+
+```go
+package main
+
+import (
+	"fmt"
+	"reflect"
+)
+
+type myInt int
+type Person struct {
+	name string
+	age  int
+}
+
+// 反射：获取类型信息
+func reflectFn(x interface{}) {
+	v := reflect.TypeOf(x)
+	fmt.Printf("类型：%v, 类型名称:%v 类型种类:%v \n", v, v.Name(), v.Kind())
+}
+
+func main() {
+	a := 10
+	b := 23.99
+	c := true
+	d := "hello"
+	reflectFn(a)
+	reflectFn(b)
+	reflectFn(c)
+	reflectFn(d)
+
+	var e myInt = 10
+	var p Person = Person{
+		"ken",
+		22,
+	}
+	reflectFn(e)
+	reflectFn(p)
+	var h = 25
+	reflectFn(&h)
+
+	var i = [3]int{1, 2, 3}
+	reflectFn(i)
+
+	var j = []int{1, 2, 3}
+	reflectFn(j)
+}
+```
+
+**输出：**
+
+```
+类型：int, 类型名称:int 类型种类:int
+类型：float64, 类型名称:float64 类型种类:float64
+类型：bool, 类型名称:bool 类型种类:bool
+类型：string, 类型名称:string 类型种类:string
+类型：main.myInt, 类型名称:myInt 类型种类:int
+类型：main.Person, 类型名称:Person 类型种类:struct
+类型：*int, 类型名称: 类型种类:ptr
+类型：[3]int, 类型名称: 类型种类:array
+类型：[]int, 类型名称: 类型种类:slice
+```
+
+#### **3.12.2 使用反射修改值**
+
+反射不仅可以获取类型和数据，还可以修改数据的值。为了修改一个对象的字段值，必须通过指针操作。
+
+```go
+package main
+
+import (
+	"fmt"
+	"reflect"
+)
+
+func reflectSetValue1(x interface{}) {
+	v := reflect.ValueOf(x)
+	if v.Kind() == reflect.Ptr && v.Elem().Kind() == reflect.Int64 {
+		v.Elem().SetInt(120)
+	}
+}
+
+func main() {
+	var a int64 = 100
+	reflectSetValue1(&a)
+	fmt.Println(a) // 输出 120
+}
+```
+
+#### **3.12.3 通过反射获取结构体字段**
+
+反射可以用于获取结构体的字段信息，并通过 `Tag` 获取结构体字段的标签。
+
+```go
+package main
+
+import (
+	"fmt"
+	"reflect"
+)
+
+type Student struct {
+	Name  string `json:"name" form:"username"`
+	Age   int    `json:"age"`
+	Score int    `json:"score"`
+}
+
+func PrintStructField(s interface{}) {
+	t := reflect.TypeOf(s)
+	v := reflect.ValueOf(s)
+	if t.Kind() != reflect.Struct {
+		fmt.Println("传入的参数不是结构体")
+		return
+	}
+
+	field0 := t.Field(0)
+	fmt.Println("字段名称：", field0.Name)
+	fmt.Println("字段类型：", field0.Type)
+	fmt.Println("字段Tag：", field0.Tag)
+	fmt.Println("字段Tag(json)：", field0.Tag.Get("json"))
+}
+
+func main() {
+	s := Student{"Ken", 22, 100}
+	PrintStructField(s)
+}
+```
+
+**输出：**
+
+```
+字段名称： Name
+字段类型： string
+字段Tag： json:"name" form:"username"
+字段Tag(json)： name
+```
+
+#### **3.12.4 反射动态调用结构体方法**
+
+可以使用反射来动态调用结构体的方法。通过 `MethodByName` 可以获取结构体的方法，并使用 `Call` 来执行该方法。
+
+```go
+package main
+
+import (
+	"fmt"
+	"reflect"
+)
+
+type Student struct {
+	Name  string
+	Age   int
+	Score int
+}
+
+func (s Student) GetInfo() string {
+	return fmt.Sprintf("Student: %s, Age: %d, Score: %d", s.Name, s.Age, s.Score)
+}
+
+func PrintStructFn(s interface{}) {
+	t := reflect.TypeOf(s)
+	v := reflect.ValueOf(s)
+
+	method0 := t.Method(0)
+	fmt.Println("方法名称：", method0.Name)
+	fmt.Println("方法类型：", method0.Type)
+
+	// 调用方法
+	info := v.MethodByName("GetInfo").Call(nil)
+	fmt.Println(info[0])
+}
+
+func main() {
+	s := Student{"Ken", 22, 100}
+	PrintStructFn(s)
+}
+```
+
+**输出：**
+
+```
+方法名称： GetInfo
+方法类型： func(main.Student) string
+Student: Ken, Age: 22, Score: 100
+```
+
+#### **3.12.5 修改结构体字段的值**
+
+通过反射，可以修改结构体的字段，前提是传入结构体的指针。
+
+```go
+package main
+
+import (
+	"fmt"
+	"reflect"
+)
+
+func reflectChangeStruct(s interface{}) {
+	t := reflect.TypeOf(s)
+	v := reflect.ValueOf(s)
+	if t.Kind() != reflect.Ptr || t.Elem().Kind() != reflect.Struct {
+		fmt.Println("传入的不是结构体指针类型")
+		return
+	}
+
+	v.Elem().FieldByName("Name").SetString("Li")
+	v.Elem().FieldByName("Age").SetInt(11)
+}
+
+func main() {
+	s := &Student{"Ken", 22, 100}
+	reflectChangeStruct(s)
+	fmt.Printf("%#v\n", s)
+}
+```
+
+**输出：**
+
+```
+&main.Student{Name:"Li", Age:11, Score:100}
+```
+
+### **3.13 泛型**
+
+在 Go 1.18 版本中，Go 引入了对泛型的支持，允许编写更加灵活和通用的代码。泛型使得你可以编写能够处理多种类型的数据结构和函数，而无需为每种类型编写单独的代码。
+
+#### **3.13.1 泛型基本概念**
+
+泛型使得函数、类型和数据结构可以操作任何类型的数据，而不仅仅是特定类型。泛型通过类型参数进行实现，这些类型参数在使用时才确定具体的类型。
+
+泛型函数的定义格式如下：
+
+```go
+func functionName[T any](arg T) T {
+    // implementation
+}
+```
+
+其中：
+
+- `T` 是类型参数，它可以代表任何类型（由 `any` 关键字表示）。
+- 泛型函数在调用时会根据传入的具体类型来推断 `T` 的类型。
+
+#### **3.13.2 泛型函数的使用**
+
+泛型函数可以让你写一个函数，处理不同的数据类型。以下是一个简单的泛型函数示例：
+
+```go
+package main
+
+// 定义一个getData的泛型方法
+func getData[T any](value T) T {
+	return value
+}
+
+func main() {
+	str1 := getData[string]("Hello")
+	println(str1)
+
+	num := getData[int](123)
+	println(num)
+
+	str2 := getData("this is str")
+	println(len(str2))
+}
+```
+
+**输出**：
+
+```
+Hello
+123
+12
+```
+
+在上面的代码中，`getData` 是一个泛型函数，能够处理任何类型的参数，且返回该类型的数据。你可以显式地指定类型，或者让 Go 自动推断类型。
+
+#### **3.13.3 泛型与接口约束**
+
+你可以使用接口约束来限制泛型类型参数的范围。Go 中有多种方式来实现接口约束。例如，我们可以定义一个 `Number` 类型接口，来限制一个泛型函数只能接受整数或浮动类型的参数。
+
+```go
+package main
+
+import "fmt"
+
+// 定义一个 Number 接口，限制为 int、int32 或 float64 类型
+type Number interface {
+	int | int32 | float64
+}
+
+// 定义一个泛型方法
+func Add[T Number](a, b T) T {
+	return a + b
+}
+
+func main() {
+	// 使用 Add 函数处理 int 类型
+	fmt.Println(Add(1, 2)) // 输出: 3
+	
+	// 使用 Add 函数处理 float64 类型
+	fmt.Println(Add(1, 2.1)) // 输出: 3.1
+}
+```
+
+**输出**：
+
+```
+3
+3.1
+```
+
+在上面的代码中，`Number` 类型接口约束 `T` 必须是 `int`、`int32` 或 `float64` 类型。这使得 `Add` 函数只能接受这些类型的参数。
+
+#### **3.13.4 泛型类型**
+
+Go 的泛型不仅限于函数，也可以用于定义泛型类型。下面是一个使用泛型类型来创建容器类型的例子：
+
+```go
+package main
+
+import "fmt"
+
+// 定义一个泛型容器类型
+type Container[T any] struct {
+	value T
+}
+
+// 为容器类型添加 Set 和 Get 方法
+func (c *Container[T]) Set(value T) {
+	c.value = value
+}
+
+func (c Container[T]) Get() T {
+	return c.value
+}
+
+func main() {
+	// 创建一个 int 类型的容器
+	intContainer := Container[int]{}
+	intContainer.Set(10)
+	fmt.Println("Int value:", intContainer.Get()) // 输出: Int value: 10
+
+	// 创建一个 string 类型的容器
+	stringContainer := Container[string]{}
+	stringContainer.Set("hello")
+	fmt.Println("String value:", stringContainer.Get()) // 输出: String value: hello
+}
+```
+
+**输出**：
+
+```
+Int value: 10
+String value: hello
+```
+
+在上面的代码中，`Container` 是一个泛型类型，它可以保存任何类型的数据。我们使用 `Set` 和 `Get` 方法来设置和获取容器中的值。
+
+#### **3.13.5 泛型与集合**
+
+泛型对于集合类型（如数组、切片、映射等）特别有用，因为它们通常需要支持多种数据类型。以下是使用泛型定义一个支持不同类型集合的示例：
+
+```go
+package main
+
+import "fmt"
+
+// 泛型函数：返回集合的第一个元素
+func getFirst[T any](items []T) T {
+	return items[0]
+}
+
+func main() {
+	ints := []int{1, 2, 3}
+	strings := []string{"a", "b", "c"}
+
+	// 使用泛型函数获取 int 类型集合的第一个元素
+	fmt.Println(getFirst(ints)) // 输出: 1
+	
+	// 使用泛型函数获取 string 类型集合的第一个元素
+	fmt.Println(getFirst(strings)) // 输出: a
+}
+```
+
+**输出**：
+
+```
+1
+a
+```
+
+### **3.14 格式化**
+
+在 Go 语言中，格式化输出主要由标准库 `fmt` 提供。`fmt` 包实现了类似 C 语言 `printf` 风格的格式化能力，用于将变量按照指定格式转换为字符串，并输出到终端、字符串或其他输出流中。
+格式化在 **日志输出、调试、字符串构造、错误信息展示** 等场景中被广泛使用。
+
+------
+
+#### **3.14.1 fmt 包概述**
+
+`fmt` 包提供了一组用于格式化 I/O 的函数，常用的包括：
+
+- `fmt.Printf`：格式化输出到标准输出
+- `fmt.Sprintf`：格式化并返回字符串
+- `fmt.Fprintf`：格式化输出到指定的 `io.Writer`
+
+这些函数都基于 **格式化占位符（format specifier）** 工作。
+
+示例：
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+	name := "Go"
+	version := 1.22
+
+	fmt.Printf("Language: %s, Version: %.2f\n", name, version)
+}
+```
+
+**输出：**
+
+```
+Language: Go, Version: 1.22
+```
+
+------
+
+#### **3.14.2 格式化占位符基本语法**
+
+格式化字符串由普通文本和占位符组成，占位符以 `%` 开头，其基本形式为：
+
+```
+%[flags][width][.precision]verb
+```
+
+其中：
+
+- `flags`：控制对齐、填充、符号等
+- `width`：最小输出宽度
+- `precision`：精度（常用于浮点数和字符串）
+- `verb`：格式化动词，决定数据的输出形式
+
+------
+
+#### **3.14.3 通用占位符**
+
+Go 提供了一组通用占位符，可用于多种类型。
+
+```go
+type User struct {
+	ID   int
+	Name string
+}
+```
+
+| 占位符 | 说明              |
+| ------ | ----------------- |
+| `%v`   | 默认格式          |
+| `%+v`  | 结构体字段名 + 值 |
+| `%#v`  | Go 语法表示       |
+| `%T`   | 值的类型          |
+| `%%`   | 输出 `%`          |
+
+示例：
+
+```go
+u := User{ID: 1, Name: "Tom"}
+
+fmt.Printf("%v\n", u)
+fmt.Printf("%+v\n", u)
+fmt.Printf("%#v\n", u)
+fmt.Printf("%T\n", u)
+```
+
+**输出：**
+
+```
+{1 Tom}
+{ID:1 Name:Tom}
+main.User{ID:1, Name:"Tom"}
+main.User
+```
+
+------
+
+#### **3.14.4 布尔类型格式化**
+
+布尔类型使用 `%t` 输出：
+
+```go
+fmt.Printf("%t\n", true)
+```
+
+**输出：**
+
+```
+true
+```
+
+------
+
+#### **3.14.5 整数类型格式化**
+
+Go 支持多种整数进制格式化方式。
+
+| 占位符 | 说明             |
+| ------ | ---------------- |
+| `%d`   | 十进制           |
+| `%b`   | 二进制           |
+| `%o`   | 八进制           |
+| `%x`   | 十六进制（小写） |
+| `%X`   | 十六进制（大写） |
+
+示例：
+
+```go
+n := 42
+fmt.Printf("%d %b %o %x %X\n", n, n, n, n, n)
+```
+
+**输出：**
+
+```
+42 101010 52 2a 2A
+```
+
+配合 `#` 标志可以输出进制前缀：
+
+```go
+fmt.Printf("%#x %#o\n", n, n)
+```
+
+**输出：**
+
+```
+0x2a 052
+```
+
+------
+
+#### **3.14.6 浮点数格式化**
+
+浮点数支持多种输出形式。
+
+| 占位符 | 说明                  |
+| ------ | --------------------- |
+| `%f`   | 十进制小数            |
+| `%e`   | 科学计数法（e）       |
+| `%E`   | 科学计数法（E）       |
+| `%g`   | 自动选择 `%f` 或 `%e` |
+| `%G`   | 自动选择（大写）      |
+
+示例：
+
+```go
+x := 3.1415926
+fmt.Printf("%f\n", x)
+fmt.Printf("%.2f\n", x)
+fmt.Printf("%e\n", x)
+```
+
+**输出：**
+
+```
+3.141593
+3.14
+3.141593e+00
+```
+
+------
+
+#### **3.14.7 字符串与字符格式化**
+
+##### 字符串
+
+| 占位符 | 说明             |
+| ------ | ---------------- |
+| `%s`   | 普通字符串       |
+| `%q`   | 带引号字符串     |
+| `%x`   | 十六进制字节表示 |
+
+示例：
+
+```go
+fmt.Printf("%s\n", "hello")
+fmt.Printf("%q\n", "hello\n")
+```
+
+**输出：**
+
+```
+hello
+"hello\n"
+```
+
+##### 字符（rune / byte）
+
+```go
+fmt.Printf("%c\n", 'A')
+fmt.Printf("%q\n", '中')
+```
+
+------
+
+#### **3.14.8 指针格式化**
+
+指针使用 `%p` 输出内存地址：
+
+```go
+x := 10
+fmt.Printf("%p\n", &x)
+```
+
+------
+
+#### **3.14.9 宽度、对齐与填充**
+
+##### 宽度控制
+
+```go
+fmt.Printf("%6d\n", 42)
+```
+
+输出右对齐：
+
+```
+    42
+```
+
+##### 左对齐
+
+```go
+fmt.Printf("%-6d\n", 42)
+42    
+```
+
+##### 补零
+
+```go
+fmt.Printf("%06d\n", 42)
+000042
+```
+
+------
+
+#### **3.14.10 自定义格式化（Stringer 接口）**
+
+如果类型实现了 `String()` 方法，`fmt` 会自动调用它。
+
+```go
+type User struct {
+	Name string
+}
+
+func (u User) String() string {
+	return "User: " + u.Name
+}
+
+func main() {
+	u := User{Name: "Tom"}
+	fmt.Printf("%v\n", u)
+}
+```
+
+**输出：**
+
+```
+User: Tom
+```
+
+------
+
+#### **3.14.11 格式化函数对比**
+
+| 函数      | 说明              |
+| --------- | ----------------- |
+| `Printf`  | 输出到标准输出    |
+| `Sprintf` | 返回格式化字符串  |
+| `Fprintf` | 输出到指定 Writer |
+
+```go
+s := fmt.Sprintf("id=%d", 10)
+fmt.Println(s)
+```
+
 ## 4. Go工程实践
 
 ### 4.1 猜数字游戏

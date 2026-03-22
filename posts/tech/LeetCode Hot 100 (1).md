@@ -1,918 +1,122 @@
 ---
 title : 'LeetCode Hot 100 精练🥸(1)'
-date : 2024-04-17T15:37:01+08:00
-lastmod: 2024-12-08T15:37:01+08:00
+date : 2024-04-17T10:00:01+08:00
+lastmod: 2025-12-20T10:00:01+08:00
 description : "LeetCode Hot 100 精练🥸(1)" 
 categories : ["LeetCode"]
-tags : ["LeetCode笔记"]
+tags : ["LeetCode Hot 100"]
 ---
 
 # LeetCode Hot 100 精练🥸(1)
 
 记忆中的东西一定会消退，真正留下的才是学到的，一定要及时回顾。
 
-## [11. 盛最多水的容器](https://leetcode.cn/problems/container-with-most-water/)
-
-**题目大意**：给定一个长度为n的整数数组`height`，数组中的每个元素代表一条垂直线的高度。找出其中的两条线，使得它们与x轴构成的容器可以容纳最多的水。
-
-**实现思路**：使用双指针法。初始化左指针l指向数组的起始位置，右指针r指向数组的末尾位置。设置变量`ret`用于记录当前最大容量，初始化为`0`。在每一轮循环中，计算当前容器的容量，即`min(height[l], height[r])`乘以r和l之间的距离，更新`ret`。然后根据指针所指向的高度的大小，移动指针，如果`height[l]<height[r]`，则移动左指针l向右一步，否则移动右指针r向左一步。直到左右指针相遇，循环结束，返回ret即可。
-
-- 正确性证明： 对于左右端点 $ l, r$， 两点之间的距离为$len = r-l+1-1$(因为两个点之间算一段，所以长度要减一)，$ ret = (r-l)*min(height[l], height[r])$,假设 $height[l]<height[r]$, 对于左端点，其作为柱子能容纳的最多的水的数量已经为最大值，任意的 $l<x<r$ 作为右端点一定比$r$做端点更差，所以可以排除左端点$l$，计算下一点即$l+1$。从左右端点开始，对于每次排除的点，已经找到这个端点可能的最大值， 所以可以保证结果的正确性。
-
-```py
-class Solution:
-    def maxArea(self, height: List[int]) -> int:
-        l, r = 0, len(height) - 1
-        res = 0
-        
-        while l < r:
-            res = max(res, (r - l) * min(height[l], height[r]))
-            if height[l] < height[r]:
-                l += 1
-            elif height[l] > height[r]:
-                r -= 1
-            else:
-                l += 1
-                r -= 1
-
-        return res
-
-```
-
-## [15. 三数之和](https://leetcode.cn/problems/3sum/)
-
-**题目大意**：给定一个整数数组 `nums`，判断是否存在三元组 `[nums[i], nums[j], nums[k]]` 满足 `i != j`、`i != k` 且 `j != k`，同时还满足 `nums[i] + nums[j] + nums[k] == 0`。返回所有满足条件的不重复的三元组。
-
-### 枚举
-
-**实现思路**：首先对数组 `nums` 进行排序。然后遍历数组，对于每个元素 `nums[i]`，设定两个指针 `l` 和 `r` 分别指向 `i+1` 和数组末尾。在 `l` 和 `r` 之间寻找和为 `0` 的两个数。具体地，如果当前元素与前一个元素相同，跳过；如果当前元素与 `l+1` 处的元素相同，跳过；在 `l` 和 r 之间利用双指针的方式找到满足条件的两个数，如果找到了满足条件的三元组，则添加到结果中。最后返回结果列表 `res`。
-
-```py
-class Solution:
-    def threeSum(self, nums: List[int]) -> List[List[int]]:
-        n = len(nums)
-        nums.sort()
-        res = []
-        for i in range(n):
-            l = i 
-            r = n-1
-            if i and nums[i]==nums[i-1]:
-                continue
-            for m in range(l+1, n):
-                if m>l+1 and nums[m]==nums[m-1]:
-                    continue
-                while r>m and nums[r]+nums[m]+nums[l]>0:
-                    r-=1
-                if m==r: break
-                if nums[r]+nums[m]+nums[l]==0:
-                    res.append([nums[l], nums[m], nums[r]])
-        return res
-```
-
-### 计数排序双指针
-
-**实现思路**：首先，利用 `Counter` 函数统计每个数出现的次数，并检查是否有 0 出现至少三次，如果是则将 `[0, 0, 0]` 添加到结果中。然后，对不重复的数进行排序。遍历排序后的数，对于每个数 num，如果 num 不等于 0 且 num 出现次数大于 1 且 `-num*2` 也在 Counter 中，则将 `[num, num, -num*2]` 添加到结果中。然后，在负数部分，利用双指针的方式寻找满足条件的两个数。最后返回结果列表 `res`。
-
-```py
-class Solution:
-    def threeSum(self, nums: List[int]) -> List[List[int]]:
-        res = []
-        c = Counter(nums)
-        if 0 in c and c[0] >= 3:
-            res.append([0,0,0])
-        no_repeat_nums = sorted(c.keys())
-        
-        for i,num in enumerate(no_repeat_nums):
-            if num != 0 and c[num] > 1 and -num*2 in c:
-                res.append([num,num,-num*2])
-            if num < 0:
-                for num3 in no_repeat_nums[ bisect_left(no_repeat_nums,((-num+1)/2)) : bisect_right(no_repeat_nums,-num*2-1) ]:
-                    num2 = -num-num3
-                    if num2 in c:
-                        res.append([num,num2,num3])
-        return res
-```
-
-## [19. 删除链表的倒数第 N 个结点](https://leetcode.cn/problems/remove-nth-node-from-end-of-list/)
-
-**题目大意**：给定一个链表，要求删除倒数第n个节点，并返回链表的头结点。
-
-**实现思路**：使用双指针，首先让第一个指针从头节点开始向后移动n步，然后同时移动第一个指针和第二个指针，直到第一个指针到达链表末尾。这样第二个指针所指的位置就是倒数第n个节点的前一个节点，然后进行删除操作即可。需要注意的是要考虑边界情况，比如链表长度为1，删除头节点等情况。
-
-```py
-class Solution:
-    def removeNthFromEnd(self, head: Optional[ListNode], n: int) -> Optional[ListNode]:
-        if not head.next:
-            return None
-
-        p1 = head
-        n -= 1
-        while n:
-            p1 = p1.next
-            n -= 1
-
-        pre = p2 = head
-        while p1.next:
-            p1 = p1.next
-            pre = p2
-            p2 = p2.next
-
-        if p2 == head:
-            head = head.next
-        else:
-            pre.next = pre.next.next
-
-        return head
-
-```
-
-## [31. 下一个排列](https://leetcode.cn/problems/next-permutation/)
-
-**题目大意**：给定一个整数数组，要求找出这个数组的下一个排列，即比当前排列大的下一个排列，如果不存在则返回字典序最小的排列。
-
-**实现思路**：要找到下一个排列，可以遵循以下步骤：
-
-1. 从数组末尾开始，找到第一个相邻的两个数，满足 `nums[i]` < `nums[i+1]`。
-2. 如果找到了这样的一对数，说明当前排列还不是最大的排列，可以进行下一步操作。
-3. 在从右往左找到的第一个位置记为 i，再从数组末尾开始，找到第一个大于 `nums[i]` 的数，记为 `j`。
-4. 交换 `nums[i]` 和 `nums[j]`。
-5. 将从 `i+1` 位置开始到数组末尾的数逆序排列，以得到字典序最小的排列。
-6. 如果步骤1中没有找到相邻的两个数，则说明当前排列已经是最大的排列，直接将整个数组逆序排列即可。
-
-```py
-class Solution:
-    def nextPermutation(self, nums: List[int]) -> None:
-        n = len(nums)
-        i = n - 2
-        while i >= 0 and nums[i] >= nums[i + 1]:
-            i -= 1
-
-        if i >= 0:
-            j = n - 1
-            while j >= i and nums[j] <= nums[i]:
-                j -= 1
-            nums[i], nums[j] = nums[j], nums[i]
-
-        nums[i + 1 :] = reversed(nums[i + 1 :])
-```
-
-## [33. 搜索旋转排序数组](https://leetcode.cn/problems/search-in-rotated-sorted-array/)
-
-**题目大意**：
-给定一个按升序排列的整数数组 `nums`，数组中的值互不相同。该数组经过未知的某个下标旋转，即原本排在数组开头的一部分元素被移动到数组末尾。给定一个目标值 `target`，如果该目标值存在于旋转后的数组中，则返回其下标，否则返回 -1。要求设计一个时间复杂度为 O(log n) 的算法解决此问题。
-
-**实现思路**：
-
-1. 使用二分查找算法来解决此问题，以满足 O(log n) 的时间复杂度要求。
-2. 初始化左右指针 `l` 和 `r` 分别指向数组的首尾元素。
-3. 在循环中，计算中间位置 `mid`，判断 `nums[mid]` 是否等于目标值 `target`，若是则直接返回 `mid`。
-4. 若 `nums[0] <= nums[mid]`，说明左半段是有序的，此时判断目标值是否在左半段范围内，若是则将右指针移到 `mid-1`，否则将左指针移到 `mid+1`。
-5. 若 `nums[0] > nums[mid]`，说明右半段是有序的，此时判断目标值是否在右半段范围内，若是则将左指针移到 `mid+1`，否则将右指针移到 `mid-1`。
-6. 若循环结束仍未找到目标值，则返回 -1。
-
-```py
-class Solution:
-    def search(self, nums: List[int], target: int) -> int:
-        if not nums:
-            return -1
-        n = len(nums)
-        l, r = 0, n - 1
-        while l <= r:
-            mid = l + r >> 1
-            if nums[mid] == target:
-                return mid
-            if nums[0] <= nums[mid]:
-                if nums[0] <= target < nums[mid]:
-                    r = mid - 1
-                else:
-                    l = mid + 1
-            else:
-                if nums[mid] < target <= nums[n - 1]:
-                    l = mid + 1
-                else:
-                    r = mid - 1
-        return -1
-```
-
-
-## [76. 最小覆盖子串](https://leetcode.cn/problems/minimum-window-substring/)
-
-**题目大意**：给你一个字符串 `s` 、一个字符串 `t` 。返回 `s` 中涵盖 `t` 所有字符的最小子串。如果 `s` 中不存在涵盖 `t` 所有字符的子串，则返回空字符串 `""` 。
-
-**思路**：双指针，为了保证对于每一个右端点，都能找到最优的左端点，对所有的已经遍历的字符都要计数`-1`， 这样在每一个符合条件的右端点判断每个字符是否有多余，这样确保左端点最优。
-
-```py
-class Solution:
-    def minWindow(self, s: str, t: str) -> str:
-        m, n = len(s), len(t)
-        needCnt = n
-        need = Counter(t)
-
-        res = (0, m)
-
-        left = 0
-        for right, ch in enumerate(s):
-            if need[ch] > 0:
-                needCnt -= 1
-            need[ch] -= 1 # 关键点
-
-            if needCnt == 0:
-                while need[s[left]]!=0: # 保证对于每个符合的右端点，都可以找到最优的左端点
-                    need[s[left]] += 1
-                    left += 1
-                if right - left + 1 < res[1] - res[0] + 1:
-                    res = (left, right)
-                needCnt += 1
-                need[s[left]] += 1
-                left += 1
-                
-        return s[res[0]:res[1]+1] if res[1] < m else ""
-```
-
-## [301. 删除无效的括号](https://leetcode.cn/problems/remove-invalid-parentheses/)
-
-**题目大意：**
-
-给你一个由若干括号和字母组成的字符串 `s` ，删除最小数量的无效括号，使得输入的字符串有效。
-
-返回所有可能的结果。答案可以按 **任意顺序** 返回。
-
-#### 回溯
-
-**实现思路：**
-
-1. **统计无效括号数量：**
-   - 首先遍历字符串s，统计左括号和右括号的数量l和r，其中l表示未匹配的左括号数量，r表示需要删除的右括号数量。
-
-2. **回溯算法：**
-   - 编写回溯算法来尝试删除不同位置的括号，使得字符串有效。
-   - 回溯过程中需要注意以下情况：
-     - 已经匹配的括号数量ln和rn，以及当前位置i。
-     - 遍历字符串s的每个字符，当遇到重复的字符时跳过，以避免重复结果。
-     - 如果当前字符为左括号并且ln不为0，则递归调用删除当前左括号的情况，ln减一，否则继续。
-     - 如果当前字符为右括号并且rn不为0，则递归调用删除当前右括号的情况，rn减一，否则继续。
-
-3. **检查字符串有效性：**
-   - 编写辅助函数`check`来检查字符串是否有效，即左右括号数量是否匹配。
-
-4. **返回结果：**
-   - 将所有有效的字符串结果添加到结果列表ret中，并返回。
-
-```py
-class Solution:
-    def removeInvalidParentheses(self, s: str) -> List[str]:
-        l, r = 0, 0
-        ret = []
-        n = len(s)
-
-        for c in s:
-            if c=='(':
-                l+=1
-            elif c==')':
-                if l==0:
-                    r+=1
-                else:
-                    l-=1
-
-        def check(st):
-            cnt=0
-            for c in st:
-                if c=='(':
-                    cnt+=1
-                elif c==')':
-                    cnt-=1
-                    if cnt<0:
-                        return False
-            return (cnt==0)
-        
-        def backtrace(st, start, ln, rn):
-            if ln==0 and rn==0 and check(st):
-                ret.append(st[:])
-                return 
-            for i in range(start, len(st)):
-                if i>start and st[i]==st[i-1]:
-                    continue
-                if ln+rn>n-1-i+1:
-                    break
-                if ln and st[i]=='(':
-                    backtrace(st[:i]+st[i+1:], i, ln-1, rn)
-                elif rn and st[i]==')':
-                    backtrace(st[:i]+st[i+1:], i, ln, rn-1)
-                
-        backtrace(s, 0, l, r)
-        return ret
-```
-
-#### 广搜
-
-这个实现使用了广度优先搜索（BFS）的思路来解决问题。
-
-1. **BFS搜索：**
-   - 使用一个集合`cur`来存储当前层的所有字符串，初始时将输入的字符串`s`加入集合`cur`中。
-   - 在每一轮循环中，遍历当前集合`cur`中的所有字符串，如果其中有字符串是有效的，则将其加入结果列表`ret`中。
-   - 如果结果列表`ret`不为空，则跳出循环，表示已经找到了所有有效的字符串。
-   - 如果结果列表`ret`为空，则需要继续进行下一轮搜索，将当前集合`cur`中的每个字符串，通过删除一个括号的方式，生成所有可能的下一层字符串，加入到集合`nxt`中。
-   - 更新当前集合`cur`为`nxt`，继续下一轮搜索。
-
-2. **检查字符串有效性：**
-   - 定义一个辅助函数`check`，用于检查字符串是否有效。
-   - 遍历字符串中的每个字符，遇到左括号时增加计数器`cnt`，遇到右括号时如果`cnt`为0则返回False（表示右括号没有匹配的左括号），否则减少`cnt`。
-   - 最终判断`cnt`是否为0，如果为0表示字符串有效。
-
-3. **返回结果：**
-   - 返回结果列表`ret`，其中存储了所有有效的字符串。
-
-```py
-class Solution:
-    def removeInvalidParentheses(self, s: str) -> List[str]:
-        ret = []
-        
-        def check(st):
-            cnt=0
-            for c in st:
-                if c=='(':
-                    cnt+=1
-                elif c==')':
-                    if cnt==0:
-                        return False
-                    cnt-=1
-            return cnt==0
-        
-        cur = set([s])
-        
-        while True:
-            for st in cur:
-                if check(st):
-                    ret.append(st)
-            if len(ret):
-                break
-            nxt = set()
-            for st in cur:
-                for i in range(len(st)):
-                    if i>0 and st[i]==st[i-1]:
-                        continue
-                    if st[i]=='(' or st[i]==')':
-                        nxt.add(st[:i]+st[i+1:])
-            cur = nxt
-        return ret
-```
-
-## [297. 二叉树的序列化与反序列化](https://leetcode.cn/problems/serialize-and-deserialize-binary-tree/)
-
-不止第一次遇到了。
-
-- **题目大意**：序列化是将一个数据结构或对象转换为连续的比特位的操作，从而可以存储在文件或内存中，并且通过网络传输到另一个计算机环境中。本题要求设计一个算法来实现二叉树的序列化和反序列化，即将二叉树转换为字符串并将字符串转换回原始的二叉树结构。
-
-- **实现思路**：
-
-1. 序列化：使用递归将二叉树转换为字符串，根节点值与左右子树序列化结果之间使用空格分隔，空节点用 '#' 表示。
-2. 反序列化：使用递归将字符串转换为二叉树。首先定义一个辅助函数 DerWork()，用于递归构建二叉树。在该函数中，按照前序遍历的顺序，依次提取字符串中的节点值，并根据节点值构建二叉树节点。如果节点值为 '#'，表示空节点，返回 None。否则，创建节点并递归构建其左右子树。
-3. 在反序列化过程中，使用一个全局变量 self.s 来记录当前待处理的字符串，每次递归处理后，将字符串中已经处理过的部分剔除，继续处理剩余部分。
-4. 最终返回根节点即可。
-
-```py
-class Codec:
-    def serialize(self, root):
-        if not root:
-            return "#"
-        return (
-            str(root.val) + " " + self.serialize(root.left) + " " + self.serialize(root.right)
-        )
-
-    def deserialize(self, data):
-        self.s = data
-        return self.DerWork()
-
-    def DerWork(self):
-        if len(self.s) == 0:
-            return None
-
-        try:
-            idx = self.s.index(" ")
-        except:
-            idx = -1
-
-        node = self.s if idx == -1 else self.s[:idx]
-        self.s = "" if idx == -1 else self.s[idx + 1 :]
-        
-        if node == "#":
-            return None
-
-        t = TreeNode(int(node))
-        t.left = self.DerWork()
-        t.right = self.DerWork()
-        return t
-```
-
-## [84. 柱状图中最大的矩形](https://leetcode.cn/problems/largest-rectangle-in-histogram/)
-
-- **题目大意**：给定 n 个非负整数，表示柱状图中各个柱子的高度。每个柱子彼此相邻，且宽度为 1。求在该柱状图中，能够勾勒出的矩形的最大面积。
-
-- **实现思路**：
-
-1. 使用单调栈解决问题。创建两个数组 l 和 r，分别记录每个柱子向左和向右第一个比其高度小的柱子的索引位置。
-2. 初始化一个空栈 stk。
-3. 遍历柱子的高度列表 heights：
-   - 若栈不为空且当前柱子的高度小于栈顶柱子的高度，则将栈顶元素弹出，并更新栈顶元素对应的 r 值为当前柱子的索引。
-   - 若栈为空或者当前柱子的高度大于栈顶柱子的高度，则将当前柱子的索引入栈。
-   - 在更新 r 值的同时，若栈不为空，则更新当前柱子的 l 值为栈顶元素的索引。
-4. 遍历完成后，对于每个柱子 i，计算以该柱子为高度的矩形面积为 (r[i] - l[i] - 1) * heights[i]，取最大值即为所求的最大矩形面积。
-5. 若柱状图为空，则返回 0。
-
-```py
-class Solution:
-    def largestRectangleArea(self, heights: List[int]) -> int:
-        # 单调栈，找到每个高度能组成的最大矩形
-        # 往左右两面找到第一个小于 自身高度的柱子，那么这两个柱子之间的柱子一定可以达到自身的高度，所以是自身高度可以组成的最大面积
-        n = len(heights)
-        l, r = [-1]*n, [n]*n 
-        res = 0
-
-        stk = []
-        for i in range(n):
-            h = heights[i]
-            while stk and heights[stk[-1]] >= h:
-                r[stk[-1]] = i
-                stk.pop()
-            if stk:
-                l[i] = stk[-1]
-            stk.append(i)
-
-        # stk = []
-        # for i in range(n-1, -1, -1):
-        #     h = heights[i]
-        #     while stk and heights[stk[-1]] >= h:
-        #         stk.pop()
-        #     if stk:
-        #         r[i] = stk[-1]
-        #     stk.append(i)
-        
-        for i in range(n):
-            if heights[i] * (r[i]-l[i]-1) > res:
-                res = heights[i] * (r[i]-l[i]-1)
-        
-        return res
-```
-
-## [85. 最大矩形](https://leetcode.cn/problems/maximal-rectangle/)
-
-- **题目大意**：给定一个仅包含 0 和 1、大小为 rows x cols 的二维二进制矩阵，找出只包含 1 的最大矩形，并返回其面积。
-
-- **实现思路**：
-
-1. 将问题转化为矩形最大面积问题。
-2. 定义变量 area 用于记录最大矩形的面积。
-3. 创建二维数组 left，用于记录每个位置 (i, j) 左侧连续 1 的个数。
-4. 遍历二维矩阵，初始化 left 数组：
-   - 若当前位置为 '1'，则 left[i][j] 等于 left[i][j-1] + 1，否则为 0。
-5. 遍历矩阵的每一列，对于每一列 j，使用单调栈来计算以当前列为底边的最大矩形的面积：
-   - 初始化一个空栈 stk。
-   - 定义两个数组 up 和 down，分别记录当前位置上方第一个小于等于其高度的位置和下方第一个小于等于其高度的位置。
-   - 遍历矩阵的每一行 i，进行以下操作：
-     - 当栈不为空且栈顶位置对应的 left 值大于等于当前位置的 left 值时，弹出栈顶位置，并更新 down 值。
-     - 如果栈为空，则当前位置的 up 值为 -1，否则为栈顶位置。
-     - 将当前行索引入栈。
-   - 在计算当前列的矩形面积时，height 为 down[i] - up[i] - 1，宽度为 left[i][j]，计算当前列的最大面积并更新 area。
-6. 返回最大面积 area。
-
-```py
-class Solution:
-    def maximalRectangle(self, matrix: List[List[str]]) -> int:
-        # 转化为矩形最大面积问题
-        n, m = len(matrix), len(matrix[0])
-        area = 0
-        left = [[0]*m for _ in range(n)]
-        
-        for i in range(n):
-            for j in range(m):
-                if matrix[i][j]=='1':
-                    left[i][j] += left[i][j-1]+1 if j else 1
-                    
-        for j in range(m):
-            stk = []
-            up, down = [-1]*n, [n]*n
-            for i in range(n): #行
-                while stk and left[ stk[-1] ][j]>=left[i][j]:
-                    down[stk[-1]] = i
-                    stk.pop()
-                up[i] = stk[-1] if stk else -1
-                stk.append(i)
-
-            for i in range(n):
-                height = down[i]-up[i]-1
-                area = max(area, height*left[i][j])
-        return area
-```
-
-## [312. 戳气球](https://leetcode.cn/problems/burst-balloons/)
-
-- **题意**：给定n个数字`num[0~n-1]`,每次戳破一个气球可以获得`nums[i-1]*nums[i]*nums[i+1]`个硬币，最两旁默认为1，问最终获得的最大硬币数量。
-- **思路**：区间DP，逆向思维, 思考如何放气球能使硬币最大，`f[i][j]`代表**开区间**`i~j`可以获得的最大硬币， 先枚举小区间，再枚举大区间，枚举区间内每个数字，状态转移有：`f[i][j] = max(f[i][j], f[i][k]+f[k][j]+nums[i]*nums[k]*nums[j])`。最终输出`f[0][n+1]`
-
-```py
-class Solution:
-    def maxCoins(self, nums: List[int]) -> int:
-        n = len(nums)
-        nums = [1] + nums + [1]
-        f = [[0] * (n + 5) for _ in range(n + 5)]
-
-        # 开区间 (left, right) 区间内能获得的最大硬币
-        for l in range(2, n + 2):  # len:2~n+1
-            for i in range(n + 1 - l + 1):  # left:0~n+1-len
-                j = i + l  # right = left + len
-                for k in range(i + 1, j):  # 开区间(i,j) 即[i+1, j-1]
-                    f[i][j] = max(
-                        f[i][j], f[i][k] + f[k][j] + nums[i] * nums[k] * nums[j]
-                    )
-
-        return f[0][n + 1]
-
-```
-
-## [301. 删除无效的括号](https://leetcode.cn/problems/remove-invalid-parentheses/)
-
-- **题目大意**：给定一个由字母和括号组成的字符串s，要求删除最小数量的括号，使得字符串成为有效的括号组合，并返回所有可能的结果。
-
-
-- **实现思路**：
-  1. 首先定义一个辅助函数`check(st)`，用于检查字符串st是否为有效的括号组合。遍历字符串中的每个字符，维护一个计数器cnt，遇到左括号增加计数，遇到右括号减少计数，若出现cnt为负数，或者遍历结束后cnt不为0，则说明括号不匹配，返回False，否则返回True。
-
-  2. 初始化一个空列表ret，用于存储结果。
-
-  3. 初始化一个集合cur，初始时将输入字符串s作为唯一元素加入其中。
-
-  4. 使用while循环，直到找到符合条件的结果为止：
-
-     - 遍历集合cur中的每个字符串，检查其是否为有效括号组合，若是则将其加入结果列表ret。
-
-     - 若结果列表ret不为空，则说明已找到符合条件的结果，结束循环。
-
-     - 否则，初始化一个空集合nxt，用于存储下一轮迭代的候选字符串集合。
-
-     - 遍历集合cur中的每个字符串，对于每个字符串，尝试删除一个字符（括号），生成新的字符串，并将其加入nxt中。
-
-     - 更新cur为nxt，继续下一轮迭代。
-  5. 返回结果列表ret。
-
-```py
-class Solution:
-    def removeInvalidParentheses(self, s: str) -> List[str]:
-        ret = []
-        def check(st):
-            cnt=0
-            for c in st:
-                if c=='(':
-                    cnt+=1
-                elif c==')':
-                    if cnt==0:
-                        return False
-                    cnt-=1
-            return cnt==0
-        cur = set([s])
-        while True:
-            for st in cur:
-                if check(st):
-                    ret.append(st)
-            if len(ret):
-                break
-            nxt = set()
-            for st in cur:
-                for i in range(len(st)):
-                    if i>0 and st[i]==st[i-1]:
-                        continue
-                    if st[i]=='(' or st[i]==')':
-                        nxt.add(st[:i]+st[i+1:])
-            cur = nxt
-        return ret
-```
-
-
-## [647. 回文子串](https://leetcode.cn/problems/palindromic-substrings/)
-
-题目大意：给定一个字符串s，统计并返回该字符串中回文子串的数目。回文字符串是指正着读和倒过来读一样的字符串。子字符串是字符串中的由连续字符组成的一个序列。即使是由相同字符组成的不同开始位置或结束位置的子串，也会被视作不同的子串。
-
-实现思路：遍历字符串s的所有可能的中心位置，对于每个中心位置，向两边扩展，判断是否是回文串。在扩展的过程中，每当发现一个回文子串，就将计数器加1。最终返回计数器的值即可。
-
-```py
-class Solution:
-    def countSubstrings(self, s: str) -> int:
-        n = len(s)
-        ans = 0
-        for i in range(2*n - 1):
-            l, r = i//2, i//2 + (i&1)
-            while l>=0 and r<n and s[l]==s[r]:
-                l-=1; r+=1
-                ans+=1
-        return ans
-```
-
-## [93. 复原 IP 地址](https://leetcode.cn/problems/restore-ip-addresses/)
-
-**题目大意**：给定一个只包含数字的字符串s，表示一个IP地址，要求返回所有可能的有效IP地址，即每个IP地址由四个整数组成（每个整数位于`0`到`255`之间，且不能含有前导0），整数之间用`'.'`分隔。不能重新排序或删除s中的任何数字，可以按任何顺序返回答案。
-
-**实现思路**：使用深度优先搜索`（DFS）`算法，递归地搜索所有可能的IP地址组合。在搜索过程中，首先确定每个整数的范围，然后遍历可能的数字组合，逐步构建`IP`地址。递归的终止条件是已经找到了四个整数并且已经遍历完了整个字符串s。
-
-```py
-class Solution:
-    def restoreIpAddresses(self, s: str) -> List[str]:
-        n = len(s)
-        res, addr = [], ['0']*4
-
-        def dfs(i, start):
-            if i==4 or start==n:
-                if i==4 and start==n:
-                    res.append('.'.join(addr))
-                return 
-            
-            if s[start]=='0':
-                addr[i] = '0'
-                dfs(i+1, start+1)
-                return 
-            
-            num = 0
-            for end in range(start, n):
-                num = num*10 + int(s[end])
-                if num in range(256):
-                    addr[i] = str(num)
-                    dfs(i+1, end+1)
-
-        dfs(0, 0)           
-        return res
-```
-
-## [538. 把二叉搜索树转换为累加树](https://leetcode.cn/problems/convert-bst-to-greater-tree/)
-
-**题目大意**：给定一个二叉搜索树的根节点，需要将其转换为累加树，即每个节点的新值等于原树中大于或等于该节点值的节点值之和。
-
-**实现思路**：
-
-### 递归解法
-
-```py
-class Solution:
-    def convertBST(self, root: Optional[TreeNode]) -> Optional[TreeNode]:
-        s = 0
-        def dfs(r):
-            nonlocal s
-            if not r:
-                return 0
-            dfs(r.right)
-            s += r.val
-            r.val = s 
-            dfs(r.left)
-        dfs(root)
-        return root
-```
-
-### **(Morris 遍历)**
-
-从根节点开始，采用反向中序遍历（右-根-左）的方式进行遍历。利用一个变量 s 记录累加和，初始值为 0。对于每个节点，首先判断其是否存在右子节点，如果不存在，则将其值加上累加和并更新累加和，然后将当前节点指向其左子节点；如果存在右子节点，则找到其中序遍历的后继节点，即右子树中最左边的节点。如果后继节点的左子节点为空，说明还未处理过该节点，则将后继节点的左子节点指向当前节点，并将当前节点指向其右子节点；如果后继节点的左子节点为当前节点，则说明已经处理过该节点，则将后继节点的左子节点置为空，将当前节点的值加上累加和并更新累加和，并将当前节点指向其左子节点。最后返回根节点。
-
-```py
-class Solution:
-    def convertBST(self, root: Optional[TreeNode]) -> Optional[TreeNode]:
-        def getSucc(node):
-            succ = node.right
-            while succ.left and succ.left!=node:
-                succ = succ.left
-            return succ
-
-        newRoot = root
-        s = 0
-        while root:
-            if not root.right:
-                s += root.val
-                root.val = s 
-                root = root.left
-            else:
-                succ = getSucc(root)
-                if not succ.left:
-                    succ.left = root
-                    root = root.right
-                else:
-                    succ.left = None
-                    s += root.val
-                    root.val = s 
-                    root = root.left
-        return newRoot
-```
-
-## [494. 目标和](https://leetcode.cn/problems/target-sum/)
-
-**题目大意**：给定一个非负整数数组 `nums` 和一个目标整数 `target`，通过给数组中的每个整数前添加 '+' 或 '-'，然后串联起来构造表达式，返回可以构造的表达式数目，使其运算结果等于目标数。
-
-### 记忆化搜索
-
-**实现思路**：这个问题可以转化为一个背包问题。我们可以将问题转化为在数组中选取一些数，使得它们的和等于 `target`。定义一个递归函数 `dfs(i, s)`，表示在数组 `nums` 中考虑第 i 个数，使得目前的和为 `s` 的表达式数目。递归的终止条件是遍历完所有数，如果 `s` 等于 `0`，表示找到了一种构造方式，返回 `1`，否则返回 `0`。递归过程中，如果 `s` 小于当前数 `nums[i]`，说明无法选取当前数，直接跳过；否则，递归考虑选取当前数和不选取当前数两种情况。利用缓存装饰器 `@cache` 可以将重复计算的结果进行缓存，提高计算效率。最后返回 `dfs(0, target)` 即可得到结果。
-
-```py
-class Solution:
-    def findTargetSumWays(self, nums: List[int], target: int) -> int:
-        target += sum(nums)
-        if target<0 or target&1:
-            return 0
-        target//=2
-        @cache
-        def dfs(i, s):
-            if i==len(nums):
-                return 1 if s==0 else 0
-            if s<nums[i]:
-                return dfs(i+1, s)
-            else:
-                return dfs(i+1, s) + dfs(i+1, s-nums[i])
-        return dfs(0, target)
-```
-
-### 动态规划
-
-**实现思路**：
-
-- **问题转化**：假设数组 `nums` 的元素和为 `s`，我们希望找到一种方式使得加正号和负号的和等于 `target`。通过推导，得到目标问题转化为：$p + n = s$， $p - n = target$ 从数组中选出和为 `(s + target) / 2` 的子集。如果 `s + target` 为负数或奇数，直接返回 0。
-- **背包问题**：将问题转化为一个经典的 0-1 背包问题。我们需要求解从 `nums` 中选取一些元素，使得它们的和恰好为 `(s + target) / 2`。
-- **动态规划**：定义 `dp[j]` 为和为 `j` 的子集数目。初始化 `dp[0] = 1`，表示和为 0 的方案有 1 种。然后遍历每个元素，并更新 `dp` 数组。
-
-```py
-class Solution:
-    def findTargetSumWays(self, nums: List[int], target: int) -> int:
-        target += sum(nums)
-        if target < 0 or target % 2:
-            return 0
-        target //= 2
-
-        n = len(nums)
-        f = [[0] * (target + 1) for _ in range(n + 1)]
-        f[0][0] = 1
-        
-        for i in range(1, n + 1):
-            for j in range(target + 1):
-                if j < nums[i - 1]:
-                    f[i][j] = f[i - 1][j]
-                else:
-                    f[i][j] = f[i - 1][j] + f[i - 1][j - nums[i - 1]]
-
-        return f[n][target]
-
-```
-
-## [416. 分割等和子集](https://leetcode.cn/problems/partition-equal-subset-sum/)
-
-**题目大意**：给定一个非空数组 `nums`，数组中只包含正整数。要求判断是否能将该数组分割成两个子集，使得这两个子集的元素和相等。
-
-**实现思路**：
-
-1. 首先计算数组 `nums` 的总和 s。
-2. 如果总和 `s` 为奇数，那么无法分割成两个和相等的子集，直接返回 `False`。
-3. 如果数组中的最大值大于总和的一半，则无法分割成两个和相等的子集，直接返回 `False`。
-4. 初始化一个大小为总和一半加一的布尔数组 `f`，`f[i]` 表示是否存在子集的和为 `i`。
-5. 将 `f[0]` 初始化为 `True`，表示子集的和为 `0`。
-6. 遍历数组 `nums`，对于每个正整数 `num`，从总和一半开始向前遍历，更新数组 `f`，如果 `f[j-num]` 为 `True`，则说明存在一个子集的和为 `j-num`，加上当前的 `num` 后，和为 `j`，因此 `f[j]` 也为 `True`。
-7. 最终返回 `f[s//2]`，表示是否存在一个子集的和为总和一半，即是否能分割成两个和相等的子集。
-
-```py
-class Solution:
-    def canPartition(self, nums: List[int]) -> bool:
-        s = sum(nums)
-        if s & 1:
-            return False
-        mx = max(nums)
-        t = s // 2
-        if mx > t:
-            return False
-
-        n = len(nums)
-        f = [False] * (t + 1)
-        f[0] = True
-        for i, num in enumerate(nums):
-            for j in range(t, num - 1, -1):
-                f[j] |= f[j - num]
-        return f[t]
-```
-
-## [394. 字符串解码](https://leetcode.cn/problems/decode-string/)
-
-**题目大意**：给定一个经过编码的字符串，其中编码规则为`k[encoded_string]`，表示`encoded_string`中的内容重复k次。要求解码该字符串。
-
-**实现思路**：使用递归来解码字符串。遍历输入字符串，根据不同情况进行处理：
-
-1. 若遇到数字，则累加数字直至遇到非数字字符。
-2. 若遇到字母，则直接加入当前解码的字符串中。
-3. 若遇到左括号'['，则递归调用解码函数，处理括号内的内容，直至遇到右括号']'。将括号内的解码结果乘以前面累积的数字，并加入当前解码的字符串中。
-4. 若遇到右括号']'，则返回当前解码的字符串和当前索引。
-5. 返回最终解码结果。
-
-```py
-class Solution:
-    def decodeString(self, s: str) -> str:
-        def decode(i, n):
-            cur = ""
-            num = 0
-            while i < len(s):
-                if s[i].isdigit():
-                    num = num * 10 + int(s[i])
-                elif s[i].isalpha():
-                    cur += s[i]
-                elif s[i] == "[":
-                    ns, ni = decode(i + 1, num)  # next str, next index
-                    cur += ns
-                    i = ni
-                    num = 0
-                elif s[i] == "]":
-                    return cur * n, i
-                i += 1
-            return cur * n, i
-
-        res, _ = decode(0, 1)
-
-        return res
-```
-
-## [72. 编辑距离](https://leetcode.cn/problems/edit-distance/)
-
-**题目大意**：
-给定两个单词 word1 和 word2，求通过插入、删除或替换字符，将 word1 转换成 word2 所需的最少操作数。
-
-#### 记忆化搜索
-
-这段代码使用了递归的方式求解，其中 dfs 函数表示将 s 的前 i 个字符转换为 t 的前 j 个字符所需的最少操作数。递归的基本情况是当 i 小于 0 时，表示 s 已经遍历完，需要插入 t 的前 j+1 个字符；当 j 小于 0 时，表示 t 已经遍历完，需要删除 s 的前 i+1 个字符；当 s[i] 等于 t[j] 时，不需要额外操作，直接递归处理 i-1 和 j-1；当 s[i] 不等于 t[j] 时，可以选择插入、删除或替换操作，选择操作数最小的方案。递归的过程中利用了缓存装饰器 `@cache` 来提高效率。
-
-```py
-class Solution:
-    def minDistance(self, s: str, t: str) -> int:
-        n, m = len(s), len(t)
-        
-        @cache
-        def dfs(i, j):
-            if i < 0:
-                return j + 1
-            if j < 0:
-                return i + 1
-            if s[i] == t[j]:
-                return dfs(i - 1, j - 1)
-            return min(dfs(i - 1, j), dfs(i, j - 1), dfs(i - 1, j - 1)) + 1
-
-        return dfs(n - 1, m - 1)
-```
-
-#### 递推
-
-**实现思路**：
-可以使用动态规划来解决这个问题。定义一个二维数组 f，其中 f[i][j] 表示将 word1 的前 i 个字符转换为 word2 的前 j 个字符所需的最少操作数。初始时，f[i][0] 表示将 word1 的前 i 个字符全部删除，需要的操作数为 i，而 `f[0][j]` 表示将 word2 的前 j 个字符全部插入到 word1 中，需要的操作数为 j。
-然后，根据动态规划的状态转移方程，逐步计算 f[i][j] 的值。若 word1[i] 等于 word2[j]，则 f[i][j] 等于 f[i-1][j-1]，即不需要额外操作；若不相等，则可以考虑插入、删除或替换操作，选择操作数最小的方案。最终，返回 f[n][m]，其中 n 和 m 分别为 word1 和 word2 的长度。
-
-```py
-class Solution:
-    def minDistance(self, s: str, t: str) -> int:
-        n, m = len(s), len(t)
-        f = [[0] * (m + 1) for _ in range(n + 1)]
-        f[0] = list(range(m + 1))  # f[0][j] = j
-        for i in range(n):
-            f[i + 1][0] = i + 1
-            for j in range(m):
-                if s[i] == t[j]:
-                    f[i + 1][j + 1] = f[i][j]
-                else:
-                    f[i + 1][j + 1] = min(f[i][j + 1], f[i + 1][j], f[i][j]) + 1
-
-        return f[n][m]
-
-```
-
-## [96. 不同的二叉搜索树](https://leetcode.cn/problems/unique-binary-search-trees/)
-
-### 题目大意：
-
-给定一个整数 `n`，要求计算由 `n` 个节点组成的二叉搜索树（BST）的数量，节点的值从 1 到 `n` 且互不相同。返回满足条件的二叉搜索树的种数。
-
-### 解题思路：
-
-1. **二叉搜索树的性质**：
-   - 对于二叉搜索树，任意节点的左子树中的值都小于该节点的值，右子树中的值都大于该节点的值。
-   - 给定一个根节点 `i`（范围从 1 到 `n`），其左子树的节点值来自 `[1, i-1]`，右子树的节点值来自 `[i+1, n]`。
-   - 通过递归计算左子树和右子树的不同构造方式，可以得到当前根节点 `i` 时，整个二叉搜索树的数量。
-2. **动态规划**：
-   - 用 `f[i]` 表示 `i` 个节点可以组成的不同二叉搜索树的数量。
-   - 初始条件：`f[0] = 1`，`f[1] = 1`，这分别表示0个节点和1个节点的二叉搜索树只有1种（空树和单个节点）。
-     - 左子树的节点数为 `j-1`，右子树的节点数为 `i-j`。
-     - 其中，`f[j-1]` 表示左子树有 `j-1` 个节点时的二叉搜索树种数，`f[i-j]` 表示右子树有 `i-j` 个节点时的二叉搜索树种数。
-3. **算法步骤**：
-   - 使用动态规划数组 `f` 来存储从 `0` 到 `n` 个节点的不同二叉搜索树的数量。
-   - 通过递推关系来填充数组 `f`。
-   - 最终 `f[n]` 就是所求的结果。
-
-- `f[i] += f[j - 1] * f[i - j]` 表示当前根节点 `j` 时，左子树和右子树的种数乘积，累加到 `f[i]`。
-
-```py
-class Solution:
-    def numTrees(self, n: int) -> int:
-        f = [0]*(n+1)
-        f[0] = 1; f[1] = 1
-        for i in range(2, n+1):
-            for j in range(1, i+1):
-                f[i] += f[i-j]*f[j-1]
-        return f[n]
-```
-
-## [160. 相交链表](https://leetcode.cn/problems/intersection-of-two-linked-lists/)
+## [题目表](https://leetcode.cn/problem-list/2cktkvj/)
+
+|(序号)|标题|
+|---- | ---- |
+|(1)|160. 相交链表|
+|(2)|236. 二叉树的最近公共祖先|
+|(3)|234. 回文链表|
+|(4)|739. 每日温度|
+|(5)|226. 翻转二叉树|
+|(6)|221. 最大正方形|
+|(7)|215. 数组中的第K个最大元素|
+|(8)|208. 实现 Trie (前缀树)|
+|(9)|207. 课程表|
+|(10)|206. 反转链表|
+|(11)|200. 岛屿数量|
+|(12)|198. 打家劫舍|
+|(13)|169. 多数元素|
+|(14)|238. 除自身以外数组的乘积|
+|(15)|155. 最小栈|
+|(16)|152. 乘积最大子数组|
+|(17)|148. 排序链表|
+|(18)|146. LRU 缓存|
+|(19)|142. 环形链表 II|
+|(20)|141. 环形链表|
+|(21)|139. 单词拆分|
+|(22)|136. 只出现一次的数字|
+|(23)|647. 回文子串|
+|(24)|128. 最长连续序列|
+|(25)|124. 二叉树中的最大路径和|
+|(26)|322. 零钱兑换|
+|(27)|494. 目标和|
+|(28)|461. 汉明距离|
+|(29)|448. 找到所有数组中消失的数字|
+|(30)|438. 找到字符串中所有字母异位词|
+|(31)|437. 路径总和 III|
+|(32)|416. 分割等和子集|
+|(33)|406. 根据身高重建队列|
+|(34)|399. 除法求值|
+|(35)|394. 字符串解码|
+|(36)|347. 前 K 个高频元素|
+|(37)|338. 比特位计数|
+|(38)|337. 打家劫舍 III|
+|(39)|121. 买卖股票的最佳时机|
+|(40)|312. 戳气球|
+|(41)|309. 买卖股票的最佳时机含冷冻期|
+|(42)|301. 删除无效的括号|
+|(43)|300. 最长递增子序列|
+|(44)|297. 二叉树的序列化与反序列化|
+|(45)|287. 寻找重复数|
+|(46)|283. 移动零|
+|(47)|279. 完全平方数|
+|(48)|253. 会议室 II|
+|(49)|240. 搜索二维矩阵 II|
+|(50)|239. 滑动窗口最大值|
+|(51)|22. 括号生成|
+|(52)|49. 字母异位词分组|
+|(53)|48. 旋转图像|
+|(54)|46. 全排列|
+|(55)|42. 接雨水|
+|(56)|39. 组合总和|
+|(57)|543. 二叉树的直径|
+|(58)|34. 在排序数组中查找元素的第一个和最后一个位置|
+|(59)|33. 搜索旋转排序数组|
+|(60)|32. 最长有效括号|
+|(61)|31. 下一个排列|
+|(62)|538. 把二叉搜索树转换为累加树|
+|(63)|23. 合并 K 个升序链表|
+|(64)|560. 和为 K 的子数组|
+|(65)|21. 合并两个有序链表|
+|(66)|20. 有效的括号|
+|(67)|19. 删除链表的倒数第 N 个结点|
+|(68)|17. 电话号码的字母组合|
+|(69)|15. 三数之和|
+|(70)|11. 盛最多水的容器|
+|(71)|10. 正则表达式匹配|
+|(72)|5. 最长回文子串|
+|(73)|4. 寻找两个正序数组的中位数|
+|(74)|3. 无重复字符的最长子串|
+|(75)|2. 两数相加|
+|(76)|79. 单词搜索|
+|(77)|114. 二叉树展开为链表|
+|(78)|621. 任务调度器|
+|(79)|617. 合并二叉树|
+|(80)|105. 从前序与中序遍历序列构造二叉树|
+|(81)|104. 二叉树的最大深度|
+|(82)|102. 二叉树的层序遍历|
+|(83)|101. 对称二叉树|
+|(84)|98. 验证二叉搜索树|
+|(85)|96. 不同的二叉搜索树|
+|(86)|94. 二叉树的中序遍历|
+|(87)|85. 最大矩形|
+|(88)|84. 柱状图中最大的矩形|
+|(89)|1. 两数之和|
+|(90)|78. 子集|
+|(91)|76. 最小覆盖子串|
+|(92)|75. 颜色分类|
+|(93)|72. 编辑距离|
+|(94)|70. 爬楼梯|
+|(95)|581. 最短无序连续子数组|
+|(96)|64. 最小路径和|
+|(97)|62. 不同路径|
+|(98)|56. 合并区间|
+|(99)|55. 跳跃游戏|
+|(100)|53. 最大子数组和|
+
+## (1)[160. 相交链表](https://leetcode.cn/problems/intersection-of-two-linked-lists/)
 
 **题目大意**：
 
@@ -937,29 +141,951 @@ class Solution:
         return l1
 ```
 
+```go
+func getIntersectionNode(headA, headB *ListNode) *ListNode {
+    l1, l2 := headA, headB
+    for l1 != l2 {
+        if l1 == nil {
+            l1 = headB
+        } else {
+            l1 = l1.Next
+        }
 
-## [148. 排序链表](https://leetcode.cn/problems/sort-list/)
+        if l2 == nil {
+            l2 = headA
+        } else {
+            l2 = l2.Next
+        }
+    }
+    return l1
+}
+```
 
-**题目大意**：给定一个链表的头结点`head`，要求将链表按升序排列，并返回排序后的链表。
+## (2)[236. 二叉树的最近公共祖先](https://leetcode.cn/problems/lowest-common-ancestor-of-a-binary-tree/)
 
-**实现思路**：
+1. **题目大意**
+    给定一个二叉树，找到该树中两个指定节点的最近公共祖先。
+    最近公共祖先的定义为：对于有根树 T 的两个节点 p、q，最近公共祖先表示为一个节点 x，满足 x 是 p、q 的祖先且 x 的深度尽可能大（一个节点也可以是它自己的祖先）。
+2. **实现思路**
+    采用递归方法来实现。基本思路如下：
+   - 如果当前节点为空，或者当前节点就是 p 或 q，返回当前节点。
+   - 递归遍历左子树和右子树，找到 p 和 q 的公共祖先。
+   - 如果左子树和右子树都找到节点，说明当前节点就是公共祖先。
+   - 如果只有左子树或右子树找到节点，说明公共祖先在该子树中，返回找到的节点。
+3. **实现代码**
 
-1. 使用归并排序的思想对链表进行排序。
-2. 编写递归函数`sortFun(head, tail)`，其中`head`表示当前待排序的子链表的头结点，`tail`表示当前待排序的子链表的尾结点的下一个结点（即尾结点的后继结点）。
-3. 在`sortFun`函数中，使用快慢指针找到当前待排序子链表的中间结点`mid`，并将链表分为两部分，左边部分由`head`到`mid-1`，右边部分由`mid`到`tail-1`。
-4. 递归调用`sortFun`函数对左右两部分进行排序，直至排序完成。
-5. 编写`merge`函数，将已经排好序的左右两部分链表进行合并，合并过程中按照结点的值大小进行比较，将较小的结点连接到结果链表中。
-6. 返回合并后的链表。
+```py
+class Solution:
+    def lowestCommonAncestor(self, root: 'TreeNode', p: 'TreeNode', q: 'TreeNode') -> 'TreeNode':
+        if not root or root == q or root == p:
+            return root
+        
+        left = self.lowestCommonAncestor(root.left, p, q)
+        right = self.lowestCommonAncestor(root.right, p, q)
+
+        if left and right:
+            return root
+        
+        if left or right:
+            return left if left else right
+```
+
+```go
+func lowestCommonAncestor(root, p, q *TreeNode) *TreeNode {
+	if root == nil || root == p || root == q {
+		return root
+	}
+
+	left := lowestCommonAncestor(root.Left, p, q)
+	right := lowestCommonAncestor(root.Right, p, q)
+
+	if left != nil && right != nil {
+		return root
+	}
+
+	if left != nil {
+		return left
+	}
+	return right
+}
+```
+
+## (3)[234. 回文链表](https://leetcode.cn/problems/palindrome-linked-list/)
+
+1、**题目大意**
+ 给定一个单链表的头节点 `head`，判断该链表是否是回文链表。如果是回文链表，返回 `true`，否则返回 `false`。
+
+2、**实现思路**
+
+- 使用递归来检查链表是否为回文。在递归过程中，我们从链表的末尾开始向前遍历，并同时检查链表的前半部分。
+- 通过非局部变量 `front` 来跟踪链表的头部，每次递归返回时，检查当前节点值是否与 `front` 节点值相同。
+- 当递归到链表末尾时，`front` 会逐渐移动到链表的下一个节点。
+
+3、**实现代码**
+
+```py
+class Solution:
+    def isPalindrome(self, head: Optional[ListNode]) -> bool:
+        front = head
+
+        def recursive(cur):
+            nonlocal front
+            if cur:
+                if not recursive(cur.next):
+                    return False
+                if front.val != cur.val:
+                    return False
+                front = front.next
+            return True
+
+        return recursive(head)
+```
+
+```go
+func isPalindrome(head *ListNode) bool {
+    front := head
+
+    var recursive func(cur *ListNode) bool
+    recursive = func(cur *ListNode) bool {
+        if cur == nil {
+            return true
+        }
+        if !recursive(cur.Next) {
+            return false
+        }
+        if front.Val != cur.Val {
+            return false
+        }
+        front = front.Next
+        return true
+    }
+
+    return recursive(head)
+}
+```
+
+## (4)[739. 每日温度](https://leetcode.cn/problems/daily-temperatures/)
+
+**1、题目大意**
+ 给定一个每日气温数组 `temperatures`，求每一天距离下一个更高温度的天数。如果之后没有更高温度，则为 0。
+
+**2、实现思路**
+
+- 使用单调递减栈存储下标，从右往左遍历数组。
+- 对于当前温度 `temperatures[i]`，栈顶小于等于它的元素弹出，确保栈保持严格递减。
+- 栈不为空时，栈顶下标减当前下标即为答案；否则为 0。
+- 最后将当前下标压入栈中。
+
+**3、实现代码**
+
+```py
+class Solution:
+    def dailyTemperatures(self, temperatures: List[int]) -> List[int]:
+        stk = []
+        n = len(temperatures)
+        res = [0] * n
+
+        for i in range(n - 1, -1, -1):
+            while stk and temperatures[stk[-1]] <= temperatures[i]:
+                stk.pop()
+
+            if stk:
+                res[i] = stk[-1] - i
+
+            stk.append(i)
+
+        return res
+```
+
+```go
+func dailyTemperatures(temperatures []int) []int {
+    n := len(temperatures)
+    stk := make([]int, 0)
+    res := make([]int, n)
+
+    for i := n - 1; i >= 0; i -= 1 {
+        for len(stk) > 0 && temperatures[stk[len(stk) - 1]] <= temperatures[i] {
+            stk = stk[:len(stk) - 1]
+        }
+        if len(stk) > 0 {
+            res[i] = stk[len(stk) - 1] - i 
+        }
+        stk = append(stk, i)
+    }
+    
+    return res
+}
+```
+
+## (5)[226. 翻转二叉树](https://leetcode.cn/problems/invert-binary-tree/)
+
+**1、题目大意**
+ 给定一棵二叉树，翻转它的左右子树，返回翻转后的根节点。
+
+**2、实现思路**
+
+- 使用递归：如果当前节点为空，直接返回。
+- 交换当前节点的左右子节点。
+- 递归翻转左子树和右子树。
+- 最终返回根节点。
+
+**3、实现代码**
+
+```py
+class Solution:
+    def invertTree(self, root: Optional[TreeNode]) -> Optional[TreeNode]:
+        if not root:
+            return root
+        
+        root.left, root.right = root.right, root.left
+
+        self.invertTree(root.left)
+        self.invertTree(root.right)
+
+        return root
+```
+
+```go
+func invertTree(root *TreeNode) *TreeNode {
+    if root == nil {
+        return root
+    }
+
+    root.Left, root.Right = root.Right, root.Left
+
+    invertTree(root.Left)
+    invertTree(root.Right)
+
+    return root
+}
+```
+
+## (6) [221. 最大正方形](https://leetcode.cn/problems/maximal-square/)
+
+**1、题目大意**
+ 给定一个由 `'0'` 和 `'1'` 组成的二维矩阵，找到只包含 `'1'` 的最大正方形，并返回其面积。
+
+**2、实现思路**
+
+- 使用动态规划，定义 `f[i][j]` 为以 `(i-1, j-1)` 为右下角的最大正方形边长。
+- 状态转移：如果 `matrix[i][j] == '1'`，则 `f[i+1][j+1] = min(f[i][j+1], f[i+1][j], f[i][j]) + 1`，否则为 0。
+- 遍历矩阵同时维护最大边长 `res`，最终返回 `res * res`。
+
+**3、实现代码**
+
+```
+
+```
+
+```py
+class Solution:
+    def maximalSquare(self, matrix: List[List[str]]) -> int:
+        m, n = len(matrix), len(matrix[0])
+
+        f = [[0] * (n + 1) for _ in range(m + 1)]
+        res = 0
+
+        for i in range(m):
+            for j in range(n):
+                if matrix[i][j] == "1":
+                    f[i + 1][j + 1] = min(f[i][j + 1], f[i + 1][j], f[i][j]) + 1
+                    if f[i + 1][j + 1] > res:
+                        res = f[i + 1][j + 1]
+
+        return res * res
+
+```
+
+```go
+func maximalSquare(matrix [][]byte) int {
+	m, n := len(matrix), len(matrix[0])
+
+	f := make([][]int, m+1)
+	for i := 0; i <= m; i += 1 {
+		f[i] = make([]int, n+1)
+	}
+
+	res := 0
+
+	for i := 0; i < m; i += 1 {
+		for j := 0; j < n; j += 1 {
+			if matrix[i][j] == '1' {
+				f[i+1][j+1] = min(f[i][j+1], f[i+1][j], f[i][j]) + 1
+				if f[i+1][j+1] > res {
+					res = f[i+1][j+1]
+				}
+			}
+		}
+	}
+
+	return res * res
+}
+
+func min(a, b, c int) int {
+	if a < b {
+		if a < c {
+			return a
+		}
+	}
+	if b < c {
+		return b
+	}
+	return c
+}
+```
+
+## (7)[215. 数组中的第K个最大元素](https://leetcode.cn/problems/kth-largest-element-in-an-array/)
+
+### 题目大意：
+
+给定一个整数数组 `nums` 和一个整数 `k`，要求返回数组中排序后的第 `k` 个最大的元素。你必须设计一个时间复杂度为 O(n) 的算法来解决此问题。
+
+### 思路分析：
+
+1. **快速选择算法**：
+   - 该题的核心思想是利用快速排序的思想，通过**分治**的方式来找到第 `k` 个最大元素。传统的快速排序时间复杂度是 O(n log n)，但通过改造快速排序成**快速选择算法**，我们可以将时间复杂度降低到 O(n)，从而满足题目的要求。
+2. **算法步骤**：
+   - **选择枢纽元素**：选择数组中的一个元素作为枢纽（通常是数组的中间元素）。
+   - **分区**：将数组分成两个部分：一部分所有元素都大于等于枢纽，另一部分所有元素都小于枢纽。
+   - **递归查找**：如果 `k` 比较接近右半部分的元素，则在右半部分继续查找；如果 `k` 比较接近左半部分的元素，则在左半部分继续查找。
+3. **实现步骤**：
+   - 在每次划分后，通过比较 `k` 的位置来决定继续处理哪一部分。
+   - 当找到的元素刚好是第 `k` 个最大的元素时，返回该元素。
+
+```py
+class Solution:
+    def findKthLargest(self, nums: List[int], k: int) -> int:
+        def qs(q, l, r, k):
+            if l >= r:
+                return 
+
+            i, j, x = l - 1, r + 1, q[l + r >> 1]
+            while i < j:
+                i += 1
+                while q[i] < x:
+                    i += 1
+                
+                j -= 1
+                while q[j] > x:
+                    j -= 1
+                
+                if i < j:
+                    q[i], q[j] = q[j], q[i]
+            
+            if j < k:
+                qs(q, j + 1, r, k)
+            else:
+                qs(q, l, j, k)
+
+            # qs(q, i, j, k)
+            # qs(q, j + 1, r, k)
+        
+        n = len(nums)
+        k = n - k # n - 1 - k + 1
+        qs(nums, 0, n - 1, k)
+        
+        return nums[k]
+```
+
+
+
+## (8)[208. 实现 Trie (前缀树)](https://leetcode.cn/problems/implement-trie-prefix-tree/)
+
+### 题目大意：
+
+实现一个 **Trie（前缀树）** 数据结构，它支持以下三种操作：
+
+1. `insert(String word)`：向前缀树中插入一个字符串 `word`。
+2. `search(String word)`：检查字符串 `word` 是否已经存在于前缀树中。
+3. `startsWith(String prefix)`：检查是否有已插入的字符串以 `prefix` 作为前缀。
+
+### 思路分析：
+
+1. **数据结构选择**：
+   - 使用字典（`dict`）来表示前缀树的节点。每个节点的键是字符，值是下一个节点或者一个特殊标记（如 `'#'`）来表示一个字符串的结束。
+2. **插入操作 (`insert`)**：
+   - 从根节点开始，逐个字符检查该字符是否存在于当前节点的字典中。如果不存在，则创建新的节点。
+   - 当字符串遍历完毕时，设置一个特殊的标记（例如 `'#'`）来标记该节点为一个完整单词的结尾。
+3. **查找操作 (`search`)**：
+   - 从根节点开始，逐个字符查找，若任意字符不存在，则返回 `False`。
+   - 如果查找到字符串末尾，并且该节点有 `'#'` 标记，则返回 `True`，表示该字符串已经插入。
+4. **前缀查找操作 (`startsWith`)**：
+   - 类似 `search`，但不需要判断是否到达字符串末尾，只要能够遍历完前缀即可。
+
+```py
+class Trie:
+    def __init__(self):
+        self.trie = {}
+
+    def insert(self, word: str) -> None:
+        cur = self.trie
+        for ch in word:
+            if ch not in cur:
+                cur[ch] = {}
+            cur = cur[ch]
+        cur['#'] = True
+
+    def search(self, word: str) -> bool:
+        cur = self.trie
+        for ch in word:
+            if ch not in cur:
+                return False
+            cur = cur[ch]
+        return cur['#'] if '#' in cur else False
+
+    def startsWith(self, prefix: str) -> bool:
+        cur = self.trie
+        for ch in prefix:
+            if ch not in cur:
+                return False
+            cur = cur[ch]
+        return True
+```
+
+## (9)[207. 课程表](https://leetcode.cn/problems/course-schedule/)
+
+1、**题目大意**
+ 给定 `numCourses` 门课程，每门课程的编号为 `0` 到 `numCourses-1`。某些课程有先修课程，给定一个数组 `prerequisites`，其中 `prerequisites[i] = [ai, bi]`，表示想要学习课程 `ai`，必须先学习课程 `bi`。判断是否能够完成所有课程的学习。如果能完成，返回 `true`；否则返回 `false`。
+
+2、**实现思路**
+ 这是一个典型的拓扑排序问题。我们可以通过以下步骤来判断是否能完成所有课程的学习：
+
+- 使用图的邻接表表示课程间的先修关系。
+- 计算每个课程的入度，入度表示在学习当前课程之前需要学习多少门课程。
+- 使用广度优先搜索（BFS）来处理图中的节点。首先，将所有入度为 0 的节点（即没有先修课程的课程）加入队列。然后依次处理这些节点，将它们依赖的课程的入度减 1。若某个课程的入度减为 0，表示可以学习该课程，将其加入队列。
+- 如果能够处理所有课程，则返回 `true`；否则，说明有课程形成了环，无法完成学习，返回 `false`。
+
+3、**实现程序**
+
+```py
+class Solution:
+    def canFinish(self, numCourses: int, prerequisites: List[List[int]]) -> bool:
+        g = defaultdict(list)
+        ind = defaultdict(int)
+
+        for f, t in prerequisites:
+            g[f].append(t)
+            ind[t] += 1
+
+        cnt = 0
+
+        q = deque()
+        for node in range(numCourses):
+            if ind[node] == 0:
+                q.append(node)
+                cnt += 1
+
+        while q:
+            f = q.popleft()
+            for nx in g[f]:
+                ind[nx] -= 1
+                if ind[nx] == 0:
+                    cnt += 1
+                    q.append(nx)
+
+        return cnt == numCourses
+```
+
+```go
+func canFinish(numCourses int, prerequisites [][]int) bool {
+	g := make(map[int][]int)
+	ind := make(map[int]int)
+
+	for _, pre := range prerequisites {
+		f, t := pre[0], pre[1]
+		g[f] = append(g[f], t)
+		ind[t]++
+	}
+
+	cnt := 0
+	q := list.New()
+
+	for node := 0; node < numCourses; node++ {
+		if ind[node] == 0 {
+			q.PushBack(node)
+			cnt++
+		}
+	}
+
+	for q.Len() > 0 {
+		f := q.Remove(q.Front()).(int)
+		for _, nx := range g[f] {
+			ind[nx]--
+			if ind[nx] == 0 {
+				cnt++
+				q.PushBack(nx)
+			}
+		}
+	}
+
+	return cnt == numCourses
+}
+```
+
+## (10)[206. 反转链表](https://leetcode.cn/problems/reverse-linked-list/)
+
+1、**题目大意**
+ 给定单链表的头节点 `head`，要求反转链表并返回反转后的链表。
+
+2、**实现思路**
+
+- **递归方法**：
+  - 递归的核心思想是通过将链表分成两部分：`head` 和 `head.next`。我们首先递归地反转 `head.next` 后的部分，然后将 `head` 插入到反转后的链表末尾。
+  - 基本步骤是：当 `head` 或 `head.next` 为 `None` 时，递归停止，返回当前节点。然后在回溯时反转节点指向，最终返回反转后的链表头。
+- **迭代方法**（进阶要求）：
+  - 通过遍历链表，逐个调整每个节点的指向。使用三个指针：`prev`，`curr` 和 `next`。
+  - 迭代过程中，`curr` 指向当前处理的节点，`prev` 指向已反转部分的尾部，`next` 是下一个待处理节点。逐步改变 `curr` 的指向，将其指向前一个节点，直到遍历完整个链表。
+
+3、**实现代码**
+
+- **递归方法**：
+
+```py
+class Solution:
+    def reverseList(self, head: Optional[ListNode]) -> Optional[ListNode]:
+        # 递归基：如果 head 为空或只有一个节点，直接返回 head
+        if not head or not head.next:
+            return head
+            
+        # 递归反转后续链表
+        newHead = self.reverseList(head.next)
+        
+        # 反转当前节点
+        head.next.next = head  # 将 head 节点连接到反转后的链表末尾
+        head.next = None       # 断开原来的链表连接
+
+        return newHead  # 返回反转后的链表头
+```
+
+- **迭代方法**（进阶）：
+
+```py
+class Solution:
+    def reverseList(self, head: Optional[ListNode]) -> Optional[ListNode]:
+        prev = None
+        curr = head
+        while curr:
+            next_node = curr.next   # 暂存下一个节点
+            curr.next = prev        # 将当前节点指向前一个节点
+            prev = curr             # 更新 prev 为当前节点
+            curr = next_node        # 更新 curr 为下一个节点
+        
+        return prev  # prev 是新的头节点
+```
+
+```go
+func reverseList(head *ListNode) *ListNode {
+	if head == nil || head.Next == nil {
+		return head
+	}
+	newHead := reverseList(head.Next)
+	head.Next.Next = head
+	head.Next = nil
+	return newHead
+}
+```
+
+## (11)[200. 岛屿数量](https://leetcode.cn/problems/number-of-islands/)
+
+1、**题目大意**
+ 给定一个由 `'1'`（陆地）和 `'0'`（水）组成的二维网格，计算网格中岛屿的数量。岛屿是由陆地相连的部分，陆地相邻仅能通过水平方向或竖直方向相连。每座岛屿由连续的 `'1'` 组成，并且会被水包围。四条边界都被水包围。
+
+2、**实现思路**
+ 这道题可以使用深度优先搜索（DFS）来解决。遍历整个网格，遇到一个 `'1'` 时，我们开始搜索该岛屿的所有陆地部分，将其标记为已访问。每次遇到一个新的 `'1'` 并开始 DFS 时，说明发现了一个新的岛屿，岛屿数量加一。
+
+- **DFS**：从当前的 `'1'` 开始，向上下左右四个方向进行搜索，所有相邻的 `'1'` 都属于同一岛屿，递归标记为已访问。
+- 需要一个 `visited` 数组来标记已访问的格子，防止重复访问。
+
+3、**实现代码**
+
+```py
+class Solution:
+    def numIslands(self, grid: List[List[str]]) -> int:
+        def dfs(i, j):
+            vis[i][j] = True
+            for k in range(4):
+                x, y = i + d[k][0], j + d[k][1]
+                if x < 0 or x >= n or y < 0 or y >= m or vis[x][y] or grid[x][y] == "0":
+                    continue
+                dfs(x, y)
+
+        n, m = len(grid), len(grid[0])
+        d = [(-1, 0), (0, 1), (1, 0), (0, -1)]
+        vis = [[False] * m for _ in range(n)]
+        res = 0
+
+        for i in range(n):
+            for j in range(m):
+                if not vis[i][j] and grid[i][j] == "1":
+                    dfs(i, j)
+                    res += 1
+                    
+        return res
+```
+
+```go
+func numIslands(grid [][]byte) int {
+	n, m := len(grid), len(grid[0])
+	d := [][2]int{{-1, 0}, {0, 1}, {1, 0}, {0, -1}}
+	vis := make([][]bool, n)
+	for i := range vis {
+		vis[i] = make([]bool, m)
+	}
+
+	var dfs func(i, j int)
+	dfs = func(i, j int) {
+		vis[i][j] = true
+		for _, dir := range d {
+			x, y := i+dir[0], j+dir[1]
+			if x < 0 || x >= n || y < 0 || y >= m || vis[x][y] || grid[x][y] == '0' {
+				continue
+			}
+			dfs(x, y)
+		}
+	}
+
+	res := 0
+	for i := 0; i < n; i++ {
+		for j := 0; j < m; j++ {
+			if !vis[i][j] && grid[i][j] == '1' {
+				dfs(i, j)
+				res++
+			}
+		}
+	}
+
+	return res
+}
+```
+
+## (12)[198. 打家劫舍](https://leetcode.cn/problems/house-robber/)
+
+**1、题目大意**
+ 给定一个非负整数数组 `nums`，表示一排房屋中每间房存放的金额。相邻房屋不能同时偷，求在不触发警报的前提下可获得的最大金额。
+
+**2、实现思路**
+
+- 使用动态规划的状态压缩写法。
+- 定义：
+  - `f` 表示偷到前一间房（不含当前）的最大金额
+  - `s` 表示偷到当前房为止的最大金额
+- 转移时，对于当前房屋 `i`：
+  - 要么不偷：金额为 `s`
+  - 要么偷：金额为 `f + nums[i]`
+  - 取两者最大值更新 `s`，并同步更新 `f`。
+- 最终 `s` 即为答案，时间 O(n)，空间 O(1)。
+
+**3、实现代码**
+
+```py
+class Solution:
+    def rob(self, nums: List[int]) -> int:
+        n = len(nums)
+
+        f, s = 0, nums[0]
+        for i in range(1, n):
+            f, s = s, max(f + nums[i], s)
+
+        return s
+```
+
+```go
+func rob(nums []int) int {
+    f, s := 0, nums[0]
+
+    for _, cur := range(nums[1:]) {
+        f, s = s, max(s, f + cur)
+    }
+
+    return s
+}
+```
+
+## (13)[169. 多数元素](https://leetcode.cn/problems/majority-element/)
+
+**1、题目大意**
+ 给定一个非空数组 `nums`，其中必然存在一个出现次数大于 ⌊n/2⌋ 的元素，找出并返回该多数元素。
+
+**2、实现思路**
+
+- 使用 **Boyer–Moore 投票算法**。
+- 维护一个候选元素 `num` 和计数器 `cnt`：
+  - 当 `cnt == 0` 时，将当前元素设为候选。
+  - 当前元素等于候选，`cnt +1`；否则 `cnt -1`。
+- 多数元素出现次数超过一半，经过“相互抵消”后必然成为最终候选。
+- 时间复杂度 O(n)，空间复杂度 O(1)。
+
+**3、实现代码**
+
+```py
+class Solution:
+    def majorityElement(self, nums: List[int]) -> int:
+        cnt = 0
+        num = None 
+
+        for nm in nums:
+            if not cnt:
+                num = nm 
+            cnt += 1 if nm == num else -1
+        
+        return num
+```
+
+```go
+func majorityElement(nums []int) int {
+    cnt, num := 0, 0
+    for _, nm := range(nums) {
+        if cnt == 0 {
+            num = nm 
+        }
+        if nm == num {
+            cnt += 1
+        } else {
+            cnt -= 1
+        }
+    }
+    return num
+}
+```
+
+## (14) [238. 除自身以外数组的乘积](https://leetcode.cn/problems/product-of-array-except-self/)
+
+**1、题目大意**
+ 给定整数数组 `nums`，对每个位置 `i`，计算除 `nums[i]` 以外其余所有元素的乘积，不能使用除法，要求时间复杂度 O(n)。
+
+**2、实现思路**
+
+- 分别计算前缀乘积和后缀乘积：
+  - `pre[i]` 表示 `i` 左侧所有元素的乘积。
+  - `suf[i]` 表示 `i` 右侧所有元素的乘积。
+- 对于位置 `i`，答案为 `pre[i] * suf[i]`。
+- 该方法天然支持数组中包含 0 的情况。
+- 时间复杂度 O(n)，空间复杂度 O(n)（可进一步压缩到 O(1)）。
+
+**3、实现代码**
+
+```py
+class Solution:
+    def productExceptSelf(self, nums: List[int]) -> List[int]:
+        n = len(nums)
+        pre, suf, res = [1] * n, [1] * n, [0] * n 
+
+        for i in range(1, n):
+            pre[i] = nums[i - 1] * pre[i - 1]
+        for i in range(n - 2, -1, -1):
+            suf[i] = nums[i + 1] * suf[i + 1]
+        
+        for i in range(n):
+            res[i] = pre[i] * suf[i]
+        
+        return res
+```
+
+```go
+func productExceptSelf(nums []int) []int {
+	n := len(nums)
+	pre := make([]int, n)
+	suf := make([]int, n)
+	res := make([]int, n)
+
+	for i := 0; i < n; i++ {
+		pre[i] = 1
+		suf[i] = 1
+	}
+
+	for i := 1; i < n; i++ {
+		pre[i] = nums[i-1] * pre[i-1]
+	}
+	for i := n - 2; i >= 0; i-- {
+		suf[i] = nums[i+1] * suf[i+1]
+	}
+
+	for i := 0; i < n; i++ {
+		res[i] = pre[i] * suf[i]
+	}
+
+	return res
+}
+```
+
+## (15)[155. 最小栈](https://leetcode.cn/problems/min-stack/)
+
+**1、题目大意**
+ 设计一个栈，支持 `push`、`pop`、`top` 操作，并能在 **O(1)** 时间内获取当前栈中的最小元素。
+
+**2、实现思路**
+
+- 使用两个栈：
+  - 主栈 `stk` 存储所有元素。
+  - 辅助栈 `mstk` 同步存储当前位置对应的最小值。
+- `push` 时，将当前值与 `mstk` 栈顶最小值比较，把较小者压入 `mstk`。
+- `pop` 时两个栈同时弹出。
+- 栈顶元素即为当前值，辅助栈栈顶即为当前最小值。
+- 所有操作时间复杂度均为 O(1)。
+
+**3、实现代码**
+
+```py
+class MinStack:
+    def __init__(self):
+        self.stk = []
+        self.mstk = []
+
+    def push(self, val: int) -> None:
+        self.stk.append(val)
+        self.mstk.append(min(val, self.mstk[-1] if self.mstk else val))
+
+    def pop(self) -> None:
+        self.stk.pop()
+        self.mstk.pop()
+
+    def top(self) -> int:
+        return self.stk[-1]
+
+    def getMin(self) -> int:
+        return self.mstk[-1]
+
+```
+
+```go
+type MinStack struct {
+	stk  []int
+	mstk []int
+}
+
+func Constructor() MinStack {
+	return MinStack{
+		stk:  []int{},
+		mstk: []int{},
+	}
+}
+
+func (this *MinStack) Push(val int) {
+	this.stk = append(this.stk, val)
+	if len(this.mstk) == 0 {
+		this.mstk = append(this.mstk, val)
+	} else {
+		minVal := this.mstk[len(this.mstk)-1]
+		if val < minVal {
+			minVal = val
+		}
+		this.mstk = append(this.mstk, minVal)
+	}
+}
+
+func (this *MinStack) Pop() {
+	this.stk = this.stk[:len(this.stk)-1]
+	this.mstk = this.mstk[:len(this.mstk)-1]
+}
+
+func (this *MinStack) Top() int {
+	return this.stk[len(this.stk)-1]
+}
+
+func (this *MinStack) GetMin() int {
+	return this.mstk[len(this.mstk)-1]
+}
+
+```
+
+## (16)[152. 乘积最大子数组](https://leetcode.cn/problems/maximum-product-subarray/)
+
+**1、题目大意**
+ 给定一个整数数组 `nums`，求乘积最大的非空连续子数组，并返回该最大乘积。
+
+**2、实现思路**
+
+- 动态规划同时维护两个状态：
+  - `mx`：以当前位置结尾的最大乘积
+  - `mn`：以当前位置结尾的最小乘积
+- 因为负数会使最大最小互换，所以每一步都需要同时更新两者：
+  - `mx = max(nm, mx * nm, mn * nm)`
+  - `mn = min(nm, mx * nm, mn * nm)`
+- 每一步用 `mx` 更新全局答案 `res`。
+- 时间复杂度 O(n)，空间复杂度 O(1)。
+
+**3、实现代码**
+
+```py
+class Solution:
+    def maxProduct(self, nums: List[int]) -> int:
+        mx, mn = 1, 1
+        res = -inf
+
+        for i, nm in enumerate(nums):
+            mxv = max(nm, mx * nm, mn * nm)
+            mnv = min(nm, mx * nm, mn * nm)
+            mx, mn = mxv, mnv
+            res = max(res, mx)
+        
+        return res
+```
+
+```go
+func maxProduct(nums []int) int {
+	mx, mn := 1, 1
+	res := nums[0]
+
+	for _, nm := range nums {
+		mxv := max(nm, mx*nm, mn*nm)
+		mnv := min(nm, mx*nm, mn*nm)
+		mx, mn = mxv, mnv
+		if mx > res {
+			res = mx
+		}
+	}
+
+	return res
+}
+
+func max(a, b, c int) int {
+	if a < b {
+		a = b
+	}
+	if a < c {
+		a = c
+	}
+	return a
+}
+
+func min(a, b, c int) int {
+	if a > b {
+		a = b
+	}
+	if a > c {
+		a = c
+	}
+	return a
+}
+
+```
+
+## (17)[148. 排序链表](https://leetcode.cn/problems/sort-list/)
+
+**1、题目大意**
+ 给定链表头节点 `head`，将链表按升序排序，返回排序后的链表。要求时间复杂度 O(n log n)。
+
+**2、实现思路**
+
+- 使用 **归并排序** 适合链表：
+  - 通过快慢指针找到链表中点，将链表分为左右两部分。
+  - 递归排序左右两部分。
+  - 使用 `merge` 函数合并两个有序链表。
+- 基于链表的归并排序时间复杂度 O(n log n)，空间复杂度 O(log n) 递归栈。
+
+**3、实现代码**
 
 ```py
 class Solution:
     def sortList(self, head: Optional[ListNode]) -> Optional[ListNode]:
+        # 归并排序
         def sortFun(head, tail):
             if not head:
                 return head
             if head.next == tail:
                 head.next = None
                 return head
+                
             slow = fast = head
 
             while fast != tail:
@@ -967,9 +1093,9 @@ class Solution:
                 slow = slow.next
                 if fast != tail:
                     fast = fast.next
-            
             mid = slow
             return merge(sortFun(head, mid), sortFun(mid, tail))
+
         def merge(h1, h2):
             dummy = ListNode(-1)
             cur = dummy
@@ -985,39 +1111,343 @@ class Solution:
                 cur.next = h1
             if h2:
                 cur.next = h2
-            
             return dummy.next
+
         return sortFun(head, None)
 ```
 
-## [581. 最短无序连续子数组](https://leetcode.cn/problems/shortest-unsorted-continuous-subarray/)
+```go
+// 合并两个有序链表
+func merge(h1, h2 *ListNode) *ListNode {
+	dummy := &ListNode{-1, nil}
+	cur := dummy
+	for h1 != nil && h2 != nil {
+		if h1.Val <= h2.Val {
+			cur.Next = h1
+			h1 = h1.Next
+		} else {
+			cur.Next = h2
+			h2 = h2.Next
+		}
+		cur = cur.Next
+	}
+	if h1 != nil {
+		cur.Next = h1
+	}
+	if h2 != nil {
+		cur.Next = h2
+	}
+	return dummy.Next
+}
 
-**题目大意**：给定一个整数数组`nums`，找出一个连续子数组，使得对该子数组进行升序排序后，整个数组都变为升序排序。要求找出符合条件的最短子数组，并输出其长度。
+func sortList(head *ListNode) *ListNode {
+	// 归并排序递归函数，tail 是右边界（不包含）
+	var sortFun func(head, tail *ListNode) *ListNode
+	sortFun = func(head, tail *ListNode) *ListNode {
+		if head == nil {
+			return head
+		}
+		if head.Next == tail {
+			head.Next = nil
+			return head
+		}
 
-**实现思路**：
+		slow, fast := head, head
+		for fast != tail {
+			fast = fast.Next
+			slow = slow.Next
+			if fast != tail {
+				fast = fast.Next
+			}
+		}
+		mid := slow
+		return merge(sortFun(head, mid), sortFun(mid, tail))
+	}
 
-1. 首先初始化最大值`mx`为负无穷，最小值`mn`为正无穷，以及最短子数组的左右边界`left`和`right`分别为`-1`。
-2. 遍历数组`nums`，从左向右寻找右边界`right`，如果当前元素小于前面的最大值`mx`，则更新`right`为当前索引；否则更新最大值`mx`为当前元素。
-3. 同时，从右向左寻找左边界`left`，如果当前元素大于后面的最小值`mn`，则更新`left`为当前索引；否则更新最小值`mn`为当前元素。
-4. 最后返回右边界和左边界的差加`1`，即为最短子数组的长度。如果左边界仍为初始值`-1`，则返回`0`表示整个数组已经有序。
+	return sortFun(head, nil)
+}
+```
+
+## (18)[146. LRU 缓存](https://leetcode.cn/problems/lru-cache/)
+
+### 题目大意：
+
+设计并实现一个支持 LRU（最近最少使用）缓存的数据结构，该缓存具有以下功能：
+
+- `get(key)`：如果关键字 `key` 存在于缓存中，则返回其对应的值；否则，返回 -1。
+- `put(key, value)`：将 `key` 与 `value` 存入缓存。如果缓存容量已满，则删除最近最少使用的元素。
+
+要求：
+
+- `get` 和 `put` 操作都必须在 **O(1)** 的平均时间复杂度内完成。
+
+### 思路分析：
+
+LRU 缓存要求最近访问的元素保持在缓存中，而最久未访问的元素被淘汰。为了实现这个功能，我们可以使用一个 **双向链表** 和一个 **哈希表**。
+
+#### 数据结构设计：
+
+1. **双向链表**：
+   - 双向链表的节点包含 `key` 和 `value`。
+   - 维护两个虚拟节点，`head`（头部）和 `tail`（尾部）。`head` 的下一个节点是最先访问的节点，而 `tail` 的前一个节点是最近访问的节点。
+   - 当一个节点被访问或插入时，它会被移动到链表的头部；当缓存满时，我们会移除尾部的节点（最久未使用）。
+2. **哈希表**：
+   - 哈希表用于存储缓存的 `key` 和对应的节点。这样我们可以通过 `key` 快速找到对应的节点，并进行 O(1) 的操作。
+
+#### 主要操作：
+
+1. **get(key)**：
+   - 查找哈希表中是否存在该 `key`。如果存在，将对应的节点移动到链表的头部，并返回其值。如果不存在，返回 -1。
+2. **put(key, value)**：
+   - 如果 `key` 已存在，则更新节点的值并将其移到链表头部。
+   - 如果 `key` 不存在，则创建一个新节点并插入链表头部。如果缓存已满，移除尾部节点。
+
+```py
+class DoubleLinkedList:
+    def __init__(self, key = 0, value = 0):
+        self.key = key
+        self.value = value
+
+        self.pre = None
+        self.next = None
+
+class LRUCache:
+
+    def __init__(self, capacity: int):
+        self.capacity = capacity
+        self.size = 0
+        self.cache = dict()
+
+        self.head = DoubleLinkedList()
+        self.tail = DoubleLinkedList()
+        self.head.next = self.tail
+        self.tail.pre = self.head
+
+    def get(self, key: int) -> int:
+        if key not in self.cache:
+            return -1
+        node = self.cache[key]
+        self.moveToHead(node)
+        return node.value
+
+    def put(self, key: int, value: int) -> None:
+        if key in self.cache:
+            node = self.cache[key]
+            node.value = value
+            self.moveToHead(node)
+        else:
+            node = DoubleLinkedList(key, value)
+            self.cache[key] = node
+            if self.size < self.capacity:
+                self.size += 1
+            else:
+                tail = self.removeTail()
+                del self.cache[tail.key]
+            self.addToHead(node)
+
+        
+    def removeNode(self, node):
+        node.next.pre = node.pre
+        node.pre.next = node.next
+    
+    def addToHead(self, node):
+        node.next = self.head.next
+        node.pre = self.head
+        self.head.next.pre = node
+        self.head.next = node
+        
+    def moveToHead(self, node):
+        self.removeNode(node)
+        self.addToHead(node)
+    
+    def removeTail(self):
+        node = self.tail.pre
+        self.removeNode(node)
+        return node
+```
+
+```go
+type DoubleLinkedList struct {
+	key, value int
+	prev, next *DoubleLinkedList
+}
+
+type LRUCache struct {
+	capacity   int
+	size       int
+	cache      map[int]*DoubleLinkedList
+	head, tail *DoubleLinkedList
+}
+
+func Constructor(capacity int) LRUCache {
+	head := &DoubleLinkedList{}
+	tail := &DoubleLinkedList{}
+	head.next = tail
+	tail.prev = head
+
+	return LRUCache{
+		capacity: capacity,
+		size:     0,
+		cache:    make(map[int]*DoubleLinkedList),
+		head:     head,
+		tail:     tail,
+	}
+}
+
+func (this *LRUCache) Get(key int) int {
+	if node, ok := this.cache[key]; ok {
+		this.moveToHead(node)
+		return node.value
+	}
+	return -1
+}
+
+func (this *LRUCache) Put(key int, value int) {
+	if node, ok := this.cache[key]; ok {
+		node.value = value
+		this.moveToHead(node)
+	} else {
+		node := &DoubleLinkedList{key: key, value: value}
+		this.cache[key] = node
+		if this.size < this.capacity {
+			this.size++
+		} else {
+			tail := this.removeTail()
+			delete(this.cache, tail.key)
+		}
+		this.addToHead(node)
+	}
+}
+
+func (this *LRUCache) removeNode(node *DoubleLinkedList) {
+	node.prev.next = node.next
+	node.next.prev = node.prev
+}
+
+func (this *LRUCache) addToHead(node *DoubleLinkedList) {
+	node.next = this.head.next
+	node.prev = this.head
+	this.head.next.prev = node
+	this.head.next = node
+}
+
+func (this *LRUCache) moveToHead(node *DoubleLinkedList) {
+	this.removeNode(node)
+	this.addToHead(node)
+}
+
+func (this *LRUCache) removeTail() *DoubleLinkedList {
+	node := this.tail.prev
+	this.removeNode(node)
+	return node
+}
+```
+
+## (19)[142. 环形链表 II](https://leetcode.cn/problems/linked-list-cycle-ii/)
+
+**1、题目大意**
+ 给定链表头节点 `head`，如果链表存在环，返回环的起点节点；如果无环，返回 `None`。
+
+**2、实现思路**
+
+- 使用 **快慢指针（Floyd 判圈算法）**：
+  - 初始化 `slow` 和 `fast` 指针指向头节点。
+  - `slow` 每次走一步，`fast` 每次走两步，如果两者相遇，则说明存在环。
+- 若存在环，重新将 `fast` 指向头节点，同时 `slow` 保持在相遇点，每次都走一步，两者再次相遇的位置即为环的起点。
+- 若快指针到达链尾，则无环，返回 `None`。
+- 时间复杂度 O(n)，空间复杂度 O(1)。
+
+**3、实现代码**
 
 ```py
 class Solution:
-    def findUnsortedSubarray(self, nums: List[int]) -> int:
-        n = len(nums)
-        mx, right = -inf, -1
-        mn, left = inf, -1
+    def detectCycle(self, head: Optional[ListNode]) -> Optional[ListNode]:
+        if not head or not head.next:
+            return None
 
-        for i in range(n):
-            if mx > nums[i]:
-                right = i 
-            else:
-                mx = nums[i]
-            
-            if mn < nums[n-1-i]:
-                left = n-1-i 
-            else:
-                mn = nums[n-1-i]
+        fast, slow = head, head
+        while fast.next:
+            fast = fast.next
+            if fast.next:
+                fast = fast.next
+            slow = slow.next
+            if fast == slow:
+                break 
+        if not fast.next:
+            return None
 
-        return 0 if left == -1 else right-left+1
+        fast = head
+        while fast != slow:
+            fast = fast.next
+            slow = slow.next
+        
+        return fast
 ```
+
+```go
+func detectCycle(head *ListNode) *ListNode {
+	if head == nil || head.Next == nil {
+		return nil
+	}
+
+	slow, fast := head, head
+	for fast != nil && fast.Next != nil {
+		slow = slow.Next
+		fast = fast.Next.Next
+		if slow == fast {
+			break
+		}
+	}
+
+	if fast == nil || fast.Next == nil {
+		return nil
+	}
+
+	fast = head
+	for fast != slow {
+		fast = fast.Next
+		slow = slow.Next
+	}
+
+	return fast
+}
+
+```
+
+## (20)[141. 环形链表](https://leetcode.cn/problems/linked-list-cycle/)
+
+**1、题目大意**
+ 判断给定链表 `head` 是否存在环，存在返回 `true`，不存在返回 `false`。
+
+**2、实现思路**
+
+- 使用 **快慢指针（Floyd 判圈算法）**：
+  - 初始化 `slow` 和 `fast` 指向头节点。
+  - `slow` 每次走一步，`fast` 每次走两步。
+  - 如果 `fast` 或 `fast.Next` 为 `nil`，说明链表无环，返回 `false`。
+  - 如果 `slow == fast`，说明链表有环，返回 `true`。
+- 时间复杂度 O(n)，空间复杂度 O(1)。
+
+**3、实现代码**
+
+```py
+class Solution:
+    def hasCycle(self, head: Optional[ListNode]) -> bool:
+        if not head:
+            return False 
+        
+        fast = slow = head
+        while fast.next:
+            fast = fast.next
+            if fast.next:
+                fast = fast.next
+            slow = slow.next
+            if fast == slow:
+                break 
+        
+        if not fast.next:
+            return False 
+        
+        return True 
+```
+

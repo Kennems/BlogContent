@@ -478,9 +478,17 @@ tmux attach -t 0
 tmux attch -t <session-name>
 ```
 
-### 杀死对话
+### 修改对话名称
 
 `ctrl + b` then `$`
+
+```shell
+tmux rename-session -t <旧会话名> <新会话名>
+```
+
+### 杀死对话
+
+`exit`退出
 
 ```
 tmux kill-session -t 0
@@ -489,6 +497,12 @@ tmux kill-session -t 0
 ```
 tmux kill-session -t <session-name>
 ```
+
+按 `Ctrl + b`
+
+然后输入 `:` 进入命令模式
+
+输入 `kill-session` 或 `kill-session -t <会话名>` 回车
 
 ### 切换会话
 
