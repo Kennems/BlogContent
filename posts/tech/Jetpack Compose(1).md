@@ -361,18 +361,18 @@ fun AppScreen() {
 
 ## 装饰类型的抽象
 
-FancyBox是一个用于装饰其他视图的视图，本例中将用来装饰Story和EditFrom。
+`FancyBox`是一个用于装饰其他视图的视图，本例中将用来装饰 `Story` 和 `EditFrom`。
 
-1. FancyBox 介绍:
-   - FancyBox 是一个用于装饰其他视觉元素的组件。
-   - 主要用在 FancyStory 和 EditForm 中。
+1. `FancyBox` 介绍:
+   - `FancyBox` 是一个用于装饰其他视觉元素的组件。
+   - 主要用在 `FancyStory` 和 `EditForm` 中。
 2. 需求:
-   - 希望结合 FancyStory 和 FancyEditForm，但不确定如何实现。
-   - 讨论是否继续使用 FancyBox 或者选择 Story。
-3. Composable 结构:
-   - Composable 可以处理子组件。
-   - 通过 Composable lambda，FancyStory 和 FancyEditForm 可以灵活组合。
-   - 示例代码展示了如何在 Composable 中使用 FancyBox 以及其与其他组件的交互。
+   - 希望结合 `FancyStory` 和 `FancyEditForm`，但不确定如何实现。
+   - 讨论是否继续使用 `FancyBox` 或者选择 `Story`。
+3. `Composable` 结构:
+   - `Composable` 可以处理子组件。
+   - 通过 `Composable` `lambda`，`FancyStory` 和 `FancyEditForm` 可以灵活组合。
+   - 示例代码展示了如何在 `Composable` 中使用 `FancyBox` 以及其与其他组件的交互。
 
 ```kotlin
 @Composable
@@ -420,13 +420,13 @@ fun MainScreen() {
 
 ## 重组
 
-重组指任何Composable函数在任何时候都可以被重新调用。
+重组指任何`Composable`函数在任何时候都可以被重新调用。
 
-1. 使用 Compose:
+1. 使用 `Compose`:
    - `@Composable` 注解用于标记可以被 Compose 框架管理的函数。
-2. LiveData 与 State:
+2. `LiveData` 与 `State`:
    - `LiveData` 是 Android 的一种数据持有者，可用于观察数据变化。
-   - `observeAsState` 方法用于将 `LiveData` 转换为 Compose 的状态，方便在 UI 中使用。
+   - `observeAsState` 方法用于将 `LiveData` 转换为 `Compose` 的状态，方便在 UI 中使用。
 3. **示例代码**:
 
 ```kotlin
@@ -457,6 +457,8 @@ fun Messages(liveMsgs: LiveData<MessageState>) {
 ## 使用列表
 
 ![composeList (1)](https://raw.githubusercontent.com/Kennems/blog-image/main/composeList%20(1).gif)
+
+
 
 ## 自定义布局
 

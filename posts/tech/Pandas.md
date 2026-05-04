@@ -2,7 +2,7 @@
 title : 'Pandas'
 date : 2025-03-29T10:30:13+08:00
 lastmod: 2025-03-29T10:20:13+08:00
-description : "NumPy" 
+description : "Pandas" 
 categories : ["AI"]
 tags : ["AI"]
 ---

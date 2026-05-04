@@ -29,7 +29,7 @@ What goes wrong if we don't have locks
     race between two cores calling `kfree()`
   BUMMER:
     we need locks for correctness
-    but loose performance (kfree is serialized)
+    but lose performance (kfree is serialized)
 
 **The lock abstraction:**
 
@@ -212,7 +212,7 @@ Atomic swap instruction:
     diagram: cores, bus, RAM, lock thing
     so we are really pushing the problem down to the hardware
     h/w implements at granularity of cache-line or entire bus
-  memory lock forces concurrent swamp to run one at a time, not interleaved
+  memory lock forces concurrent swap to run one at a time, not interleaved
 
 Look at xv6 spinlock implementation
 
@@ -288,6 +288,129 @@ Advice:
 
 # [Lab: Copy-on-Write Fork for xv6](https://pdos.csail.mit.edu/6.S081/2020/labs/cow.html)
 
-
-
 ## Implement copy-on write([hard](https://pdos.csail.mit.edu/6.S081/2020/labs/guidance.html))
+
+在 xv6 内核中实现写时复制（Copy-on-Write）的 `fork`。完成要求后，内核需成功通过 `cowtest` 和 `usertests` 测试。
+
+关键要求：
+
+1. 修改 `uvmcopy()` 实现父子进程共享物理页，不分配新页，并清除 PTE_W。
+2. 在 `usertrap()` 处理写时复制的页面错误，分配新页并拷贝旧页数据。
+3. 实现物理页引用计数，确保页在最后一次引用解除后才被释放。
+4. 修改 `copyout()` 处理 COW 页面。
+
+### 1.添加reference数组，记录页面的引用计数。
+
+![image-20240926121105036](https://raw.githubusercontent.com/Kennems/blog-image/main/image-20240926121105036.png)
+
+### 2.初始化引用计数
+
+![image-20240926121219046](https://raw.githubusercontent.com/Kennems/blog-image/main/image-20240926121219046.png)
+
+### 3.分配时将页面计数置为1
+
+![image-20240926121301072](https://raw.githubusercontent.com/Kennems/blog-image/main/image-20240926121301072.png)
+
+### 4.实现计数 `+1` `-1`
+
+![image-20240926121415398](https://raw.githubusercontent.com/Kennems/blog-image/main/image-20240926121415398.png)
+
+### 5.trap中出现未分配的page时判断是否是cow
+
+![image-20240926121558069](https://raw.githubusercontent.com/Kennems/blog-image/main/image-20240926121558069.png)
+
+### 6.添加cow标记位
+
+![image-20240926121645097](https://raw.githubusercontent.com/Kennems/blog-image/main/image-20240926121645097.png)
+
+### 7.kalloc时，标记cow标志位， 而不是立刻分配空间， 添加页面的引用计数
+
+![image-20240926121743881](https://raw.githubusercontent.com/Kennems/blog-image/main/image-20240926121743881.png)
+
+### 8.实现`is_cow()` 和 `cow_alloc()`
+
+![image-20240926121857988](https://raw.githubusercontent.com/Kennems/blog-image/main/image-20240926121857988.png)
+
+![image-20240926121927248](https://raw.githubusercontent.com/Kennems/blog-image/main/image-20240926121927248.png)
+
+```c
+// 模仿 walkaddr 根据虚拟地址返回物理地址
+int is_cow(pagetable_t pagetable, uint64 va)
+{
+  pte_t *pte;
+  if (va >= MAXVA)
+  {
+    return 0;
+  }
+  if ((pte = walk(pagetable, va, 0)) == 0)
+  {
+    return 0;
+  }
+  if ((*pte & PTE_V) == 0)
+  {
+    return 0;
+  }
+  if ((*pte & PTE_U) == 0)
+  {
+    return 0;
+  }
+  return 1;
+}
+
+// cow_alloc: 处理写时复制（COW, Copy-On-Write）操作
+// 输入参数：
+// - pagetable: 页表指针，用于定位虚拟地址所对应的页表项
+// - va: 虚拟地址 (virtual address)，需要被复制的页
+// 返回值：
+// - 成功时返回新分配的物理页地址
+// - 失败时返回 0
+
+uint64 cow_alloc(pagetable_t pagetable, uint64 va)
+{
+  // 将虚拟地址对齐到页边界（向下取整），因为内存页通常按页大小分配
+  va = PGROUNDDOWN(va);
+
+  // 获取虚拟地址 va 对应的页表项指针，如果失败返回 0
+  pte_t *pte = walk(pagetable, va, 0);
+
+  // 为新的物理页分配内存
+  char *mem = kalloc();
+  if (mem == 0)
+  {
+    // 内存分配失败，返回 0
+    return 0;
+  }
+
+  // 获取当前页表项中存储的物理地址
+  uint64 pa = PTE2PA(*pte);
+
+  // 将原物理页的数据复制到新分配的物理页 mem 中，保证内容一致
+  memmove(mem, (char *)pa, PGSIZE);
+
+  // 获取页表项中的标志位信息（权限信息）
+  uint flags = PTE_FLAGS(*pte);
+
+  // 将新分配的物理页地址和原先的标志位一起设置到页表项
+  (*pte) = PA2PTE((uint64)mem) | flags;
+
+  // 为新的页表项添加写权限（PTE_W），因为 COW 后需要进行写操作
+  (*pte) |= PTE_W;
+
+  // 清除 COW 标志（PTE_C），表示这个页不再是共享的 COW 页
+  (*pte) &= ~PTE_C;
+
+  // 释放原先的物理页，原物理页在没有其他进程使用后可以被回收
+  kfree((void *)pa);
+
+  // 返回新分配的物理页地址
+  return (uint64)mem;
+}
+```
+
+### 9.copyout()中判断是否是`cow()`, 并执行`cow_alloc`， 分配内存
+
+![image-20240926122208524](https://raw.githubusercontent.com/Kennems/blog-image/main/image-20240926122208524.png)
+
+10.`defs.h`中进行函数声明
+
+![image-20240926122504380](https://raw.githubusercontent.com/Kennems/blog-image/main/image-20240926122504380.png)

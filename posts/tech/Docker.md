@@ -92,9 +92,9 @@ mysql
 
 ## 自定义镜像
 
-### DokerFile
+### Dockerfile
 
-DockerFile就是一个文本文件， 其中包括一个个的指令（Instruction），用指令来说明要执行什么操作来构建镜像。将来Docker可以根据DockerFile帮我们构建镜像。
+Dockerfile就是一个文本文件， 其中包括一个个的指令（Instruction），用指令来说明要执行什么操作来构建镜像。将来Docker可以根据DockerFile帮我们构建镜像。
 
 ![image-20240724145130585](https://cdn.jsdelivr.net/gh/kennems/blog-image/image-20240724145130585.png)
 

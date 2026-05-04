@@ -1332,7 +1332,7 @@ public class ImagePagerAdapter extends PagerAdapter {
 
 ### XML
 
-#### activity_fragement_static.xml
+#### activity_fragment_static.xml
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -1411,7 +1411,7 @@ public class FragmentStaticActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_fragement_static);
+        setContentView(R.layout.activity_fragment_static);
     }
 }
 ```
@@ -1507,7 +1507,7 @@ public class StaticFragment extends Fragment {
 
 静态注册在布局文件中直接指定Fragment，而动态注册直到代码中才动态添加Fragment。
 
-## Fragment声明周期
+## Fragment生命周期
 
 ![image-20240630223900670](https://cdn.jsdelivr.net/gh/kennems/blog-image/image-20240630223900670.png)
 

@@ -65,7 +65,7 @@ public class BillPagerActivity extends AppCompatActivity implements View.OnClick
         iv_back.setOnClickListener(this);
         tv_month = findViewById(R.id.tv_month);
 
-        tv_title.setText("帐单列表");
+        tv_title.setText("账单列表");
         tv_subtitle.setText("添加账单");
         tv_subtitle.setOnClickListener(this);
         calendar = Calendar.getInstance();

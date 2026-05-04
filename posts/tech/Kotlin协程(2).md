@@ -161,7 +161,7 @@ tags : ["Kotlin"]
 
 #### SupervisorScope
 
-- 当作业自身执行失败的时候，所以子作业将会被全部取消
+- 当作业自身执行失败的时候，所有子作业将会被全部取消
 
 ```kotlin
 @Test
@@ -220,7 +220,7 @@ fun `test supervisorScope`() = runBlocking<Unit> {
 
 ## 异常的捕获
 
-- 使用`CoroutineExcepitonHandler`对协程的异常进行捕获
+- 使用`CoroutineExceptionHandler`对协程的异常进行捕获
 - 以下的条件被满足时，异常就会被捕获：
   - **时机**：异常是被自动抛出异常的协程所抛出的（使用launch，而不是async时）；
   - **位置**：在`CoroutineScope`的`CoroutineContext`中或在一个根协程（`CoroutineScope`或者`supervisorScope`的直接子协程）中。
@@ -232,9 +232,9 @@ fun `test supervisorScope`() = runBlocking<Unit> {
 
 ## 取消与异常
 
-- 取消与异常紧密相关，协程内部使用`CancellationExcepiton`来进行取消，这个异常会被忽略。
+- 取消与异常紧密相关，协程内部使用`CancellationException`来进行取消，这个异常会被忽略。
 - 当子协程被取消时，不会取消它的父协程
-- 如果一个协程遇到了`CancellationExcepiton`以外的异常，它将使用该异常取消它的父协程。当父协程的所有子协程都结束后，异常才会被父协程处理。
+- 如果一个协程遇到了`CancellationException`以外的异常，它将使用该异常取消它的父协程。当父协程的所有子协程都结束后，异常才会被父协程处理。
 
 ```kotlin
     @Test

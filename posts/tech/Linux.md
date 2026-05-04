@@ -13,10 +13,6 @@ tags : ["Linux笔记"]
 
 # Linux
 
-快捷键：
-
-ctrl + l 清空屏幕
-
 # Linux文件系统
 
 ## **FHS3.0**（File system Hierarchy Standard）
@@ -40,7 +36,7 @@ ctrl + l 清空屏幕
 
 抽象对象：
 
-- 超级快：文件系统
+- 超级块：文件系统
 - 目录项：文件路径
 - 索引节点：具体文件
 - 文件：进程打开的文件
@@ -236,7 +232,7 @@ grep [-n] 关键字 文件路径
 - 参数，**关键字**，必填，表示过滤的关键字，带有空格或其它特殊符号，建议使用“ ”将关键字包围起来
 - 参数，**文件路径**，必填，表示要过滤内容的文件路径，可作为**内容输入端口**
 
-### 搜索当年目录下所有文件是否包含某一个内容
+### 搜索当前目录下所有文件是否包含某一个内容
 
 使用 `grep` 命令来搜索当前路径下所有文件是否包含某个单词：
 
@@ -360,7 +356,7 @@ tail [-f -num] 参数
    ```bash
    awk '{print toupper($1)}' file.txt
    ```
-   这个命令将将文件file.txt中的第一个字段转换为大写并打印出来。
+   这个命令将文件file.txt中的第一个字段转换为大写并打印出来。
 
 7. 过滤并处理文件内容：
    ```bash
@@ -642,12 +638,6 @@ Alt + B 向左移动一个单词
 
 Alt + F 向右移动一个单词
 
-## WSL 与 windows剪切板通信
-
-visual模式选中文本，之后 `:'<,'>w !clip.exe` 复制选择的文本
-
-`:w !clip.exe` 复制整个文本
-
 # Linux权限和用户
 
 ## su
@@ -840,7 +830,7 @@ chmod u = rwx, g = rx, o = x hello.txt
 **-R选项**可以将文件夹以及文件夹内**全部内容**权限设置为：rwxrwxrwx
 
 ```bash
-chmod -R u=rwx, g=rwx, o=rwx hello.tx
+chmod -R u=rwx, g=rwx, o=rwx hello.txt
 ```
 
 使用数字序号
@@ -1184,7 +1174,7 @@ KibSwap : 虚拟内存（交换空间），total : 总量，free : 空闲，used
 -p : 只显示某个进程信息
 -d : 设置刷新时间，默认为5s
 -c : 显示产生进程的完整命令，默认是进程名
--n : 制定刷新次数，比如 top -n 3 是新输出三次后退出
+-n : 指定刷新次数，比如 top -n 3 是刷新输出三次后退出
 -b : 以非交互非全屏模式运行，以批次的方式执行top，一般配合-n制定输出几次统计信息，将输出重定向到制定文件，比如 top -b -n 3 > /tmp/top.tmp
 -i : 不显示任何闲置（idle）或无用的进程
 -u ： 查找特定用户启动的进程
@@ -1418,19 +1408,3 @@ unzip
 ```bash
 7z a -t7z -mx=9 压缩文件名.7z 文件或文件夹
 ```
-
-## Mysql
-
-```shell
-wget --no-check-certificate https: /dlcdn.apache.org/tomcat/tomcat10/v10.0.27/bin/apache-tomcat-10.0.27.tar.gz
-```
-
-## Redis
-
-## ElasticSearch
-
-## Tomcat
-
-## Nginx
-
-## RabbitMq

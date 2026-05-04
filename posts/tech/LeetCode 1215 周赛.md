@@ -100,9 +100,9 @@ class Solution:
 1. **前缀哈希**：
     为了快速判断子数组是否相等，采用前缀哈希计算子数组的哈希值。哈希值的计算公式为：
 
-   $h[i]=(h[i−1]⋅base+nums[i−1])%modh[i] = (h[i-1] \cdot \text{base} + \text{nums}[i-1]) \% \text{mod}$
+   $h[i] = (h[i-1] \cdot \text{base} + \text{nums}[i-1]) \% \text{mod}$
 
-   使用哈希可以在 O(1)O(1) 时间内比较任意两个子数组是否相等。
+   使用哈希可以在 $O(1)$ 时间内比较任意两个子数组是否相等。
 
 2. **双层遍历**：
 

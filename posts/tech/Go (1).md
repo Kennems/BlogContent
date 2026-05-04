@@ -2,7 +2,7 @@
 title : 'Go语言基础'
 date : 2025-01-25T10:00:01+08:00
 lastmod: 2025-11-02T10:00:01+08:00
-description : "Go语言基础" 
+description : "Go语言基础"
 image : img/cat.jpg
 draft : false    
 categories : ["Go"]

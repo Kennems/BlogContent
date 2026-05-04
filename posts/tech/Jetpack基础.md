@@ -54,9 +54,9 @@ class MainViewModel(countReserved: Int) : ViewModel() {
 }
 ```
 
-## `Lifecycles`
+## `Lifecycle`
 
-可以在`Observer`中查看到对应`MainActivity`声明周期的变化
+可以在`Observer`中查看到对应`MainActivity`生命周期的变化
 
 ![image-20250215172015394](C:\Users\Acer\AppData\Roaming\Typora\typora-user-images\image-20250215172015394.png)
 

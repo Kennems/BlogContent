@@ -85,7 +85,7 @@ func TestGreeting(t *testing.T) {
 
 ```
 
-## facade  装饰器
+## facade  门面模式
 
 ```go
 package test

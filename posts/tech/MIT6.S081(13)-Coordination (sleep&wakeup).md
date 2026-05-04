@@ -269,7 +269,7 @@ let's look at `sleep()` in `proc.c`
 
 ​      dying but not yet dead
 ​      won't run again
-​      won't (yet) be re-allocated by `fork()`, eithe·r
+​      won't (yet) be re-allocated by `fork()`, either
 ​    (note stack and proc[] entry are still allocated...)
 ​    `swtch()` to scheduler
   `wait()` in `proc.c` (parent, or init, will eventually call):

@@ -2,7 +2,7 @@
 title : 'Kotlin协程(5)'
 date : 2024-08-06T22:30:13+08:00
 lastmod: 2024-08-13T22:20:13+08:00
-description : "Kotlin协程(4)" 
+description : "Kotlin协程(5)" 
 image : img/cat.jpg
 draft : false    
 categories : ["Kotlin学习笔记"]
@@ -51,7 +51,7 @@ binding.user = userObject
 
 - ViewHolder的作用
   - 缓存视图：在 `ViewHolder`中缓存了每个子项的视图引用，减少不必要的视图查找。
-  - 服用视图：通过复用 `ViewHolder`对象，避免在滚动时重复创建和销毁视图，提高性能。
+  - 复用视图：通过复用 `ViewHolder`对象，避免在滚动时重复创建和销毁视图，提高性能。
 
 ```kotlin
 class MyViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {

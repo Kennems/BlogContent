@@ -17,7 +17,7 @@ git 由 linus 开发。
 
 ![img](https://www.ruanyifeng.com/blogimg/asset/2015/bg2015120901.png)
 
-1. **clone**（克隆)）： 从远程仓库中克隆代码到本地仓库
+1. **clone**（克隆）： 从远程仓库中克隆代码到本地仓库
 2. **checkout**（检出）：从本地仓库中检出一个仓库分支然后进行修订
 3. **add**（添加）：在提交前先将代码提交到暂存区
 4. **commit**（提交）：提交到本地仓库，本地仓库中保存修改的各个历史版本
@@ -110,10 +110,10 @@ $ git commit -v
 
 # 使用一次新的commit，替代上一次提交
 # 如果代码没有任何新变化，则用来改写上一次commit的提交信息
-$ git commit -amend -m [message]
+$ git commit --amend -m [message]
 
 # 重做上一次commit，并包括指定文件的新变化
-$ git commit -amend [file1] [file2] ...
+$ git commit --amend [file1] [file2] ...
 ```
 
 ### 版本切换：
@@ -209,6 +209,56 @@ set HTTPS_PROXY=
 
 ```shell
 git -c http.proxy= clone https://huggingface.co/XiaomiMiMo/MiMo-7B-RL
+```
+
+## 恢复
+
+### 1. 恢复到特定提交
+
+将分支恢复到某个特定的提交（如 `abc1234`），可以使用以下命令：
+
+```bash
+git reset --hard abc1234
+```
+
+这将重置当前分支到该提交，并且会丢失该提交之后的所有更改。
+
+### 2. 还原最近的提交（但保留更改）
+
+如果你想撤销最近的提交，但保留工作区的更改，可以使用：
+
+```bash
+git reset --soft HEAD~1
+```
+
+这会将 HEAD 移动到上一个提交，同时保留你的更改在暂存区。
+
+### 3. 恢复被删除的提交
+
+如果你需要恢复一个已经被删除的提交，可以使用 `git reflog` 查找并恢复它：
+
+```bash
+git reflog
+```
+
+找到需要恢复的提交哈希（如 `abc1234`），然后使用：
+
+```  bash
+git checkout abc1234
+```
+
+或者，如果你想将当前分支移动到该提交：
+
+```bash
+git reset --hard abc1234
+```
+
+### 4. 撤销最近的提交（保持更改）
+
+如果你想撤销最近的提交，但想保留更改在工作目录中，可以使用：
+
+```bash
+git revert HEAD
 ```
 
 ## 分支
@@ -475,16 +525,6 @@ git push -u origin main
    nothing to commit, working tree clean
    ```
 
-### 使用图形化工具解决冲突
-
-使用 Git 的图形化工具（如 `GitKraken`、`SourceTree`、`Git GUI` 等）。这些工具通常会以可视化方式显示冲突，并允许你选择或编辑解决方案。
-
-### 合并冲突的常见场景
-
-1. **编辑同一行**：两个分支修改了相同的文件的同一行。
-2. **删除和修改**：一个分支删除了文件，另一个分支修改了文件内容。
-3. **相同内容的修改**：两个分支在同一文件中修改了相同的内容，但修改的方式略有不同。
-
 ## 推送
 
 ### 推送所有本地分支
@@ -506,58 +546,6 @@ git push --force origin main
 ```bash
 git push --force-with-lease
 ```
-
-## 恢复
-
-### 1. 恢复到特定提交
-
-如果你想将分支恢复到某个特定的提交（如 `abc1234`），可以使用以下命令：
-
-```bash
-git reset --hard abc1234
-```
-
-这将重置当前分支到该提交，并且会丢失该提交之后的所有更改。
-
-### 2. 还原最近的提交（但保留更改）
-
-如果你想撤销最近的提交，但保留工作区的更改，可以使用：
-
-```bash
-git reset --soft HEAD~1
-```
-
-这会将 HEAD 移动到上一个提交，同时保留你的更改在暂存区。
-
-### 3. 恢复被删除的提交
-
-如果你需要恢复一个已经被删除的提交，可以使用 `git reflog` 查找并恢复它：
-
-```bash
-git reflog
-```
-
-找到需要恢复的提交哈希（如 `abc1234`），然后使用：
-
-```  bash
-git checkout abc1234
-```
-
-或者，如果你想将当前分支移动到该提交：
-
-```bash
-git reset --hard abc1234
-```
-
-### 4. 撤销最近的提交（保持更改）
-
-如果你想撤销最近的提交，但想保留更改在工作目录中，可以使用：
-
-```bash
-git revert HEAD
-```
-
-这将创建一个新的提交，撤销最后一次提交的更改。
 
 ## 修改 commit 的 message 
 

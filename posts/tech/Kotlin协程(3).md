@@ -344,7 +344,7 @@ fun `test flatMapLatest`() = runBlocking<Unit> {
 ### Channel的关闭
 
 - produce和actor返回的Channel都会随着对应的协程执行完毕而关闭，也正是这样，Channel才被称为**热数据流**。
-- 对于Channel，如果我们调用了它的close方法，它会立即停止接收新元素，也就是说这是它的`isClosedForSend`会立即返回true。而由于Channel缓冲区的存在，这时候可能还有一些元素没有被处理完，因此要等所有的元素都被读取之后`isClosedForSend`才会返回true。
+- 对于Channel，如果我们调用了它的close方法，它会立即停止接收新元素，也就是说这是它的`isClosedForSend`会立即返回true。而由于Channel缓冲区的存在，这时候可能还有一些元素没有被处理完，因此要等所有的元素都被读取之后`isClosedForReceive`才会返回true。
 - Channel的生命周期最好由主导方来维护，建议由主导的一方实现关闭。
 
 ```kotlin

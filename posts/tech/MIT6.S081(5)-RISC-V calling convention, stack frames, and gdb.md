@@ -358,7 +358,7 @@ delete 删除breakpoint
 
 ### traps:
 
-- `ecall` : 在RISC-V架构中，`ecall`是一个用于出发环境调用（Environment Call），从用户态转换成更高级别请求系统服务，当程序
+- `ecall` : 在RISC-V架构中，`ecall`是一个用于触发环境调用（Environment Call），从用户态转换成更高级别请求系统服务，当程序
 - exception
 - interrupt
 
@@ -369,11 +369,15 @@ delete 删除breakpoint
 2. `sepc` (Supervisor Exception Program Counter)
    - 用于保存发生陷阱时的程序计数器（PC）的值。当陷阱发生时，PC的值会被保存到`sepc`中，而PC会被重置为`stvec`中的地址。之后内核可以使用`sret（返回陷阱指令）`将`sepc`的值恢复到PC，从而返回到正确的执行位置。
 3. `scause` (Supervisor Cause Register)
-   - `scause`寄存器记录了导致陷阱发生的原因。它包含一个数值，表示出发陷阱的时间类型，例如**设备中断**，**系统调用**和**非法指令**。
+   - `scause`寄存器记录了导致陷阱发生的原因。它包含一个数值，表示触发陷阱的时间类型，例如**设备中断**，**系统调用**和**非法指令**。
 4. `sscratch` (Supervisor Scratch Register)
    - 是一个临时寄存器，内核可以在陷阱处理程序开始时用它来保存重要值，方便处理器处理陷阱的初始阶段。
 5. `sstatus`(Supervisor Status Register)
    - 用于控制和反映当前处理器的状态，其包含若干控制位：
      - **SIE**（Supervisor Interrupt Enable）：控制设备中断是否启用。如果内核清除SIE位，RISC-V会推迟处理设备中断，直到内核重新设置该位。
      - **SPP**（Supervisor Previous Privilege）：指示陷阱来自用户模式（User Mode）还是监督模式（Supervisor Mode），并控制`sret`指令返回的模式。
+
+
+
+
 

@@ -281,19 +281,13 @@ class SecondActivity : AppCompatActivity() {
 
    确保在 Application 中调用了 `ARouter.init(this)`。
 
-确保在 Application 中调用了 `ARouter.init(this)`。
-
 1. **路由找不到**
 
    检查 `@Route` 的路径是否正确，是否在模块中执行了编译。
 
-检查 `@Route` 的路径是否正确，是否在模块中执行了编译。
-
 1. **跨模块无法跳转**
 
    确保各模块都正确依赖了 ARouter，并在编译期生成了相应的代码。
-
-确保各模块都正确依赖了 ARouter，并在编译期生成了相应的代码。
 
 ```kotlin
         ARouter.getInstance()
@@ -530,7 +524,7 @@ interface UserDao {
 
 ```kotlin
 @Database(version = 1, entities = [User::class])
-abstract classAppDatabase: RoomDatabase() {
+abstract class AppDatabase: RoomDatabase() {
     abstract fun userDao(): UserDao
 
     companion object {
@@ -597,7 +591,7 @@ queryDataBtn.setOnClickListener {
 
 ```kotlin
 @Database(version = 3, entities = [User::class, Book::class])
-abstract classAppDatabase: RoomDatabase() {
+abstract class AppDatabase: RoomDatabase() {
     abstract fun userDao(): UserDao
     abstract fun bookDao(): BookDao
 

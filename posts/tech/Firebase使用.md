@@ -63,7 +63,7 @@ firebase emulators:start --project=demo-friendlychat-android
 ## Firebase本地调试
 
 ```kotlin
-    Firebase.database.useEmulator("10.0.2.2",gg 9000)
+    Firebase.database.useEmulator("10.0.2.2", 9000)
     Firebase.auth.useEmulator("10.0.2.2", 9099)
     Firebase.storage.useEmulator("10.0.2.2", 9199)
 ```

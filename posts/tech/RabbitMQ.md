@@ -153,7 +153,7 @@ Direct Exchange会将接收到的消息根据规则路由到指定的Queue，因
 
 ### Topic交换机
 
-`TopicExchange`与`DirectExchange`类似，区别在于`routingKey`可以时多个单词的列表，并且以`，`分割。
+`TopicExchange`与`DirectExchange`类似，区别在于`routingKey`可以是多个单词的列表，并且以`.`分割。
 
 Queue与Exchange指定`BindingKey`时可以使用通配符：
 
@@ -503,13 +503,13 @@ public class ErrorConfiguration {
 
 ## 面试题
 
-### 如果保证支付服务与交易服务之间的订单状态一致性？
+### 如何保证支付服务与交易服务之间的订单状态一致性？
 
 - 首先，支付服务会正在用户支付成功以后利用MQ消息通知交易服务，完成订单状态同步。
 - 其次，为了保证MQ消息的可靠性，我们采用了生产者确认机制、消费者确认、消费者失败重试等策略，确保消息投递和处理的可靠性。同时也开启了MQ的持久化，避免因服务宕机导致消息丢失。
 - 最后，我们还在交易服务更新订单状态时做了业务幂等判断，避免了因为重复消费导致订单状态异常。
 
-### 如果交易服务消息处理失败，有没有什么兜底方案？
+### 如何交易服务消息处理失败，有没有什么兜底方案？
 
 - 我们可以在交易服务设置定时任务，定时查询订单支付状态。这样即便MQ通知失败，还可以利用定时任务作为兜底方案，确保订单支付状态的最终一致性。
 
@@ -530,4 +530,56 @@ public class ErrorConfiguration {
 如果队列通过dead-letter-exchange属性制定了一个交换机，那么该队列中的死信就会投递到这个交换机中。这个交换机称为死信交换机（Dead Letter Exchange， 简称DLX）
 
 ### 延迟消息插件
+
+docker 查看mq的插件挂载目录：
+
+```shell
+docker volume inspect mq-plugins
+```
+
+docker中mq安装插件
+
+```shell
+docker exec -it mq rabbitmq-plugins enable rabbitmq_delayed_message_exchange
+```
+
+```java
+@RabbitListener(bindings = @QueueBinding(
+    value = @Queue(name = "delay.queue", durable = "true"),
+    exchange = @Exchange(name = "delay.direct", delayed = "true"),
+    key = "delay"
+))
+public void listenDelayMessage(String msg) {
+    log.info("接收到delay.queue的延迟消息: {}", msg);
+}
+```
+
+```java
+@Bean
+public DirectExchange delayExchange() {
+    return ExchangeBuilder
+        .directExchange("delay.direct")
+        .delayed() // 设置delay的属性为true
+        .durable(true) // 持久化
+        .build();
+}
+```
+
+发送消息通过消息头`x-delay`来设置过期时间：
+
+```java
+    @Test
+    public void testSendDelayMessage(){
+        rabbitTemplate.convertAndSend("delay.direct", "hi", "hello delay", new MessagePostProcessor() {
+            @Override
+            public Message postProcessMessage(Message message) throws AmqpException {
+                message.getMessageProperties().setDelay(10000);
+                return message;
+            }
+        });
+        log.info("发送消息成功！");
+    }
+```
+
+延时功能对性能消耗较大，只适用于延时时间较短的场景。
 

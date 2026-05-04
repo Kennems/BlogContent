@@ -143,7 +143,7 @@ public Result add(@RequestBody ShoppingCartDTO shoppingCartDTO){
 
 用户下单业务说明：
 
-再电商系统中，用户是通过下单的方式通知商家，用户已经购买了商品，需要商家进行备货和发货。
+在电商系统中，用户是通过下单的方式通知商家，用户已经购买了商品，需要商家进行备货和发货。
 
 ### 数据库设计
 

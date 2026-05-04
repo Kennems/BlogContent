@@ -519,7 +519,7 @@ public class StringUtilTest {
 - 在测试方法执行前执行的方法：常用于：初始化资源
 - 在测试方法执行完后再执行的方法，常用于：释放资源
 
-在`Junit 5.xxxx`版本
+在`JUnit 5.x`版本
 
 ```java
 @Before->@BeforeEach

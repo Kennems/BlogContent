@@ -16,7 +16,7 @@ tags : ["Linux笔记"]
 
 在 Linux 中，`sda` 是系统中常见的块设备名称，用于表示磁盘设备。
 
-- **`sda`** 是系统中第一个 **SCSI (Small Computer System Interface)** 或 **SATA (Serial ATA（**Advanced Technology Attachment**）)** 磁盘的标识符，通常代表硬盘或固态硬盘。
+- **`sda`** 是系统中第一个 **SCSI (Small Computer System Interface)** 或 **SATA (Serial ATA (Advanced Technology Attachment))** 磁盘的标识符，通常代表硬盘或固态硬盘。
 - 在 Linux 系统中，所有的存储设备（如硬盘、SSD、U盘）都会被标记为块设备，使用类似 `sdX` 的命名规则，其中：
 - - **`sd`** 表示 `SCSI/SATA` 设备（尽管现在也适用于大多数现代磁盘，包括 `NVMe` 磁盘）。
   - **`a`** 表示第一个磁盘，`b` 是第二个磁盘，`c` 是第三个磁盘，依此类推。

@@ -1,7 +1,7 @@
 ---
 title : 'Android 代码架构设计'
 date : 2025-02-15T22:30:13+08:00
-lastmod: 2024-02-15T22:20:13+08:00
+lastmod: 2025-02-15T22:20:13+08:00
 description : "Android学习笔记" 
 image : img/cat.jpg
 draft : false    
@@ -14,7 +14,7 @@ tags : ["Android"]
 
 代码分层设计
 
-VC-P
+MVP
 
 # 内存泄漏
 
@@ -38,4 +38,4 @@ MVP可以解决内存泄漏的问题
 
 接口隔离
 
-迪米特原则 ：
+迪米特原则：

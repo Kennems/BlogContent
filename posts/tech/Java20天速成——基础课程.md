@@ -15,9 +15,9 @@ tags : ["Java"]
 
 有志者事竟成
 
-没有完完全全的投入，检测，学习是学不到东西的。
+没有全身心的投入和检验，是学不到东西的。
 
-自欺欺人，眼高手低是绝对没有任何作用的。
+自欺欺人和眼高手低毫无作用。
 
 ![Java快速入门， IDEA开发工具使用](https://cdn.jsdelivr.net/gh/kennems/blog-image/Java%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8%EF%BC%8C%20IDEA%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7%E4%BD%BF%E7%94%A8.png)
 
@@ -59,7 +59,7 @@ Java Development Kit 开发者工具包
 
 ```cmd
 cls： 清屏
-退回到盘符根目录 ： cd\
+切换到盘符根目录 ： cd\
 先切换盘符在切换目录
 ```
 
@@ -821,7 +821,7 @@ public class MovieOperator {
 
     // 打印所有电影信息
     public void printAllMovies() {
-        System.out.println("系统全部电影信息如下————————————————————————————");
+        System.out.println("全部电影信息如下————————————————————————————");
         for (int i = 0; i < movies.length; i++) {
             Movie m = movies[i];
             System.out.println("编号：—————————————" + m.getId());

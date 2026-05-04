@@ -1198,7 +1198,7 @@ public class FileUtil {
 }
 ```
 
-### Application 声明周期
+### Application 生命周期
 
 首先自定义一个Application
 
@@ -1250,7 +1250,7 @@ public class MyApplication extends Application {
 
 ![image-20240624180723031](https://cdn.jsdelivr.net/gh/kennems/blog-image/image-20240624180723031.png)
 
-3、Application声明周期
+3、Application生命周期
 
 ![image-20240624180900919](https://cdn.jsdelivr.net/gh/kennems/blog-image/image-20240624180900919.png)
 

@@ -41,8 +41,6 @@ protoc --version  # 确认版本输出
 
 **Ubuntu / Debian：**
 
-bash
-
 ```bash
 sudo apt-get update
 sudo apt-get install -y protobuf-compiler
@@ -68,7 +66,7 @@ go version
 
 ```bash
 # 安装 gRPC-Go
-go get google.golang.org/grpc
+go install google.golang.org/grpc@latest
 
 # 安装 Go 版 protobuf 工具链
 go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
@@ -78,8 +76,6 @@ go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 > 注意：`$GOPATH/bin` 要在你的 `PATH` 里（否则找不到 `protoc-gen-go` 命令）。
 
 检查：
-
-bash
 
 ```bash
 protoc-gen-go --version

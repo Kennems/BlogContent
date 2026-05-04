@@ -705,9 +705,9 @@ func TestGetFromDB(t *testing.T) {
 ```
 
 ```
-=== RUN   TestGetFromDb
+=== RUN   TestGetFromDB
     mock_test.go:33: PASS:	Get(string)
---- PASS: TestGetFromDb (0.00s)
+--- PASS: TestGetFromDB (0.00s)
 PASS
 ```
 

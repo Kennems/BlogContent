@@ -84,7 +84,7 @@ Android上的主线程，用来处理UI交互和一些轻量级任务
 - 重用的相关API有：
   - `GlobalScope`：生命周期是process级别的，即使Activity， Fragment 已经被销毁，协程仍然在执行
   - `MainScope`，在Activity中使用，可以在`onDestroy()`中取消协程
-  - `viewModelScope`，只能在`ViewModel`中使用，绑定`ViewModel`的声明周期
+  - `viewModelScope`，只能在`ViewModel`中使用，绑定`ViewModel`的生命周期
   - `lifecycleScope`，只能在Activity，Fragment中使用，会绑定Activity 和 Fragment的生命周期
 
 ## 协程使用
@@ -429,7 +429,7 @@ fun main() = runBlocking {
 - `isActive`是一个可以被使用在`CoroutineScope`中的扩展属性，检查Job是否处于活跃状态
 - `ensureActive()`， 如果job处于非活跃状态，这个方法会立即抛出异常
 
-- `yield`函数会检查所在协程的状态，如果已经取消，则抛出`CancellationExcepiton`予以相应。此外，它还会尝试让出线程的执行权，给其他协程提供执行机会。
+- `yield`函数会检查所在协程的状态，如果已经取消，则抛出`CancellationException`予以相应。此外，它还会尝试让出线程的执行权，给其他协程提供执行机会。
 
 ### 协程取消的副作用
 

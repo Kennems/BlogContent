@@ -31,7 +31,7 @@ What needs to happen when a program makes a system call, e.g. write()?
     transparent to user code -- resume without disturbing
 
 Today we're focusing on the user/kernel transition
-  and ignoring what the system call implemenation does once in the kernel
+  and ignoring what the system call implementation does once in the kernel
   but the sys call impl has to be careful and secure also!
 
 What does the CPU's "mode" protect?
@@ -435,7 +435,7 @@ $0x630 = 0x30(ra) + 1536, ra = 0x30$
 	printf("x=%d y=%d", 3);
 ```
 
-因为`printf`会尝试从栈或者内存上读取这个缺失的参数，这会导致未定义的行为，可能会获取到任意的内存产生未知的值，具体取决于栈和内存的的状态，编译行为和优化，运行环境和内存的管理。
+因为`printf`会尝试从栈或者内存上读取这个缺失的参数，这会导致未定义的行为，可能会获取到任意的内存产生未知的值，具体取决于栈和内存的状态，编译行为和优化，运行环境和内存的管理。
 
 ## Backtrace ([moderate](https://pdos.csail.mit.edu/6.S081/2020/labs/guidance.html))
 

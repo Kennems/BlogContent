@@ -708,7 +708,7 @@ class SharedFlowFragment : Fragment() {
 
 - pageSize: 每页显示的数据的大小
 - prefetchDistance，预刷新的距离，距离最后一个item多远时加载数据，默认为pageSize。
-- initialLoadSize，初始化加载数量，默认位pageSize * 3
+- initialLoadSize，初始化加载数量，默认为pageSize * 3
 
 ### Paging3部分
 

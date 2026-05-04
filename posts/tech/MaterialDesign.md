@@ -1,5 +1,5 @@
 ---
-title : 'MaterialDesign '
+title : 'MaterialDesign'
 date : 2025-02-15T22:30:13+08:00
 lastmod: 2024-02-15T22:20:13+08:00
 description : "Android学习笔记" 

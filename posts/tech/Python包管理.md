@@ -1,8 +1,10 @@
 ---
 title : 'Python包管理'
 date : 2025-03-22T22:30:13+08:00
-lastmod: 2024-03-22T22:20:13+08:00
+lastmod: 2025-03-22T22:20:13+08:00
 description : "Python包管理" 
+image : img/cat.jpg
+draft : false    
 categories : ["AI"]
 tags : ["Python包"]
 ---

@@ -1,7 +1,7 @@
 ---
 title : 'Android Studio 使用'
 date : 2025-02-15T22:30:13+08:00
-lastmod: 2024-02-15T22:20:13+08:00
+lastmod: 2025-02-15T22:20:13+08:00
 description : "Android学习笔记" 
 image : img/cat.jpg
 draft : false    
@@ -12,7 +12,7 @@ tags : ["Android"]
 
 # Android Studio 使用
 
-kotlin设置带空格的函数名
+Kotlin设置带空格的函数名
 
 https://stackoverflow.com/questions/42485164/suppress-identifier-not-allowed-in-android
 

@@ -178,7 +178,7 @@ Va `->` Pa
 
 sbrk() -> eager allocation
 
-applcations tend to over ask.
+applications tend to over ask.
 
 ### Lazy allocation
 

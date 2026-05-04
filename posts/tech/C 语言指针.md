@@ -15,7 +15,7 @@ tags : ["C"]
 **静态内存（Static Memory)**
 
 - Global variables, accessible throughout the whole program.
-- Defined with static keywork, as well as variables defined in global scope.
+- Defined with static keyword, as well as variables defined in global scope.
 
 **栈内存（Stack Memory)**
 
@@ -416,7 +416,7 @@ int main(int argc, char const *argv[])
 }
 ```
 
-### 通过指针便利数组
+### 通过指针遍历数组
 
 ```c
 #include <stdio.h>

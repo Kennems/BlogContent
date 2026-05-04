@@ -30,7 +30,7 @@ Where do device interrupts come from?
     CPUs, CLINT, PLIC, devices
       Fig 3 has more detail for interrupts
       Section 8 and 9 of FU540-C000-v1.0.pdf
-    UART (universal asynchrnonous receiver/transmitter)
+    UART (universal asynchronous receiver/transmitter)
       See Section 13 of FU540-C000-v1.0.pdf
       Although the QEMU version is slightly different
         Follows http://byterunner.com/16550.html

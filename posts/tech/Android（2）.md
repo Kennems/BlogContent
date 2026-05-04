@@ -22,7 +22,7 @@ tags : ["Android"]
 
 - `finish();` //结束当前的活动页面
 
-## Activity声明周期
+## Activity生命周期
 
 - `onCreate` ：创建活动。把页面布局加载进内存，进入了初始状态。
 - `onStart`：开始活动。把活动显示在屏幕上，进入了就绪状态

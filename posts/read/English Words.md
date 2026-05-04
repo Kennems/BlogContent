@@ -1,7 +1,7 @@
 ---
 title : 'English Words'
 date : 2025-01-25T22:30:13+08:00
-lastmod: 2024-01-25T22:20:13+08:00
+lastmod: 2025-01-25T22:20:13+08:00
 description : "English Words" 
 categories : ["English Words"]
 tags : ["English Words"]
@@ -11,7 +11,7 @@ tags : ["English Words"]
 
 *zeitgeist* 时代精神
 
-You must resilient.
+You must be resilient.
 
 There is no further reference to him in her diary.
 
@@ -64,3 +64,10 @@ There is no further reference to him in her diary.
 *trajectory* `n.轨迹`
 
 *contradictory* `adj.相互矛盾的`
+
+## 250206
+
+*premiere* `n.首映，首演` `v.首演，初次上映` `adj.首位的`
+
+*psychiatric* `adj.精神病的 精神病学的` 
+

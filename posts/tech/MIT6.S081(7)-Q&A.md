@@ -186,7 +186,7 @@ part 3 of pagetable because we have now mapped the user's virtual
 address into the user's kernel pagetable. Since it is still a virtual
 address, doesn't it need to just walk the user's kernel page table? Or
 is it because the user code now enters the kernel, and the kernel's
-pagetable directly maps virtual addresses to physical addressses?
+pagetable directly maps virtual addresses to physical addresses?
 However, in my implementation, it seems to be that the kernel still
 maps the same virtual addresses to the same physical addresses as the
 user's page table, , which is not a direct mapping.
@@ -337,7 +337,7 @@ realized for reparent test, I sometimes pass it but I sometimes
 fail. I fixed this issue by realizing I need to switch back to
 kernel_pagetable in the scheduler after exiting the process's kernal
 pagetable. I wonder why such mistakes would cause reparent to behave
-non-deterministaclly? Was there some sort of race condition?
+non-deterministically? Was there some sort of race condition?
 
 ===
 
