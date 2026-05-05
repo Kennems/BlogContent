@@ -551,23 +551,16 @@ func TestBuilder(t *testing.T) {
 		name     string
 		builder  Builder
 		expected interface{}
-		getRes   func() interface{}
 	}{
 		{
 			name:     "Builder1",
 			builder:  &Builder1{},
 			expected: "123",
-			getRes: func() interface{} {
-				return (&Builder1{}).GetResult()
-			},
 		},
 		{
 			name:     "Builder2",
 			builder:  &Builder2{},
 			expected: 6,
-			getRes: func() interface{} {
-				return (&Builder2{}).GetResult()
-			},
 		},
 	}
 
@@ -852,5 +845,796 @@ func TestObserver(t *testing.T) {
 	}
 }
 
+```
+
+
+## bridge Bridge
+
+```go
+/*
+  Bridge 桥接模式：
+        将抽象部分与它的实现部分分离，使它们都可以独立地变化
+ 个人想法：组合/聚合复用原则
+
+## bridge
+
+```go
+package bridge
+
+type Software interface {
+	Run() string
+}
+
+type SoftwareA struct{}
+func (s *SoftwareA) Run() string { return "run soft a" }
+
+type SoftwareB struct{}
+func (s *SoftwareB) Run() string { return "run soft b" }
+
+type Phone interface {
+	SetSoft(software Software)
+	Run() string
+}
+
+type PhoneA struct {
+	soft Software
+	name string
+}
+func NewPhoneA(name string) *PhoneA { return &PhoneA{name: name} }
+func (p *PhoneA) SetSoft(software Software) { p.soft = software }
+func (p *PhoneA) Run() string { return "PhoneA " + p.name + " run: " + p.soft.Run() }
+
+type PhoneB struct {
+	soft Software
+	name string
+}
+func NewPhoneB(name string) *PhoneB { return &PhoneB{name: name} }
+func (p *PhoneB) SetSoft(software Software) { p.soft = software }
+func (p *PhoneB) Run() string { return "PhoneB " + p.name + " run: " + p.soft.Run() }
+```
+
+```go
+package bridge
+import "testing"
+func TestBridge(t *testing.T) {
+	sa := &SoftwareA{}
+	pa := NewPhoneA("pa")
+	pa.SetSoft(sa)
+	if res := pa.Run(); res != "PhoneA pa run: run soft a" {
+		t.Errorf("Unexpected result: %s", res)
+	}
+}
+```
+
+
+## chain_of_responsibility
+
+```go
+package chain_of_responsibility
+import "strconv"
+
+type Request struct {
+	RequestType string
+	Number      int
+}
+
+type Manager interface {
+	SetSuperior(manager Manager)
+	RequestApplications(request Request) string
+}
+
+type CommonManager struct {
+	name     string
+	superior Manager
+}
+func NewCommonManager(name string) *CommonManager { return &CommonManager{name: name} }
+func (c *CommonManager) SetSuperior(manager Manager) { c.superior = manager }
+func (c *CommonManager) RequestApplications(request Request) string {
+	if request.RequestType == "请假" && request.Number <= 2 {
+		return c.name + ":" + request.RequestType + " 数量" + strconv.Itoa(request.Number) + " 被批准"
+	} else if c.superior != nil {
+		return c.superior.RequestApplications(request)
+	}
+	return ""
+}
+
+type Majordomo struct {
+	name     string
+	superior Manager
+}
+func NewMajordomo(name string) *Majordomo { return &Majordomo{name: name} }
+func (m *Majordomo) SetSuperior(manager Manager) { m.superior = manager }
+func (m *Majordomo) RequestApplications(request Request) string {
+	if request.RequestType == "请假" && request.Number <= 5 {
+		return m.name + ":" + request.RequestType + " 数量" + strconv.Itoa(request.Number) + " 被批准"
+	} else if m.superior != nil {
+		return m.superior.RequestApplications(request)
+	}
+	return ""
+}
+
+type GeneralManager struct {
+	name     string
+	superior Manager
+}
+func NewGeneralManager(name string) *GeneralManager { return &GeneralManager{name: name} }
+func (g *GeneralManager) SetSuperior(manager Manager) { g.superior = manager }
+func (g *GeneralManager) RequestApplications(request Request) string {
+	if request.RequestType == "请假" {
+		return g.name + ":" + request.RequestType + " 数量" + strconv.Itoa(request.Number) + " 被批准"
+	} else if request.RequestType == "加薪" && request.Number <= 500 {
+		return g.name + ":" + request.RequestType + " 数量" + strconv.Itoa(request.Number) + " 被批准"
+	} else if request.RequestType == "加薪" && request.Number > 500 {
+		return g.name + ":" + request.RequestType + " 数量" + strconv.Itoa(request.Number) + " 再说吧"
+	}
+	return ""
+}
+```
+
+```go
+package chain_of_responsibility
+import "testing"
+func TestChain(t *testing.T) {
+	jinli := NewCommonManager("jinli")
+	zongjian := NewMajordomo("zongjian")
+	zongjingli := NewGeneralManager("zongjingli")
+	jinli.SetSuperior(zongjian)
+	zongjian.SetSuperior(zongjingli)
+
+	req := Request{RequestType: "请假", Number: 1}
+	res := jinli.RequestApplications(req)
+	if res != "jinli:请假 数量1 被批准" { t.Errorf("Unexpected res: %s", res) }
+	
+	req2 := Request{RequestType: "加薪", Number: 1000}
+	res2 := jinli.RequestApplications(req2)
+	if res2 != "zongjingli:加薪 数量1000 再说吧" { t.Errorf("Unexpected res: %s", res2) }
+}
+```
+
+
+## command
+
+```go
+package command
+
+type Command interface {
+	Execute() string
+}
+
+type Receiver struct{}
+func (r *Receiver) Action() string { return "执行请求！" }
+
+type ConcreteCommand struct {
+	receiver *Receiver
+}
+func NewConcreteCommand(receiver *Receiver) *ConcreteCommand {
+	return &ConcreteCommand{receiver: receiver}
+}
+func (c *ConcreteCommand) Execute() string {
+	return c.receiver.Action()
+}
+
+type Invoker struct {
+	command Command
+}
+func (i *Invoker) SetCommand(command Command) { i.command = command }
+func (i *Invoker) ExecuteCommand() string {
+	if i.command != nil { return i.command.Execute() }
+	return ""
+}
+```
+
+```go
+package command
+import "testing"
+func TestCommand(t *testing.T) {
+	receiver := &Receiver{}
+	cmd := NewConcreteCommand(receiver)
+	invoker := &Invoker{}
+	invoker.SetCommand(cmd)
+	if res := invoker.ExecuteCommand(); res != "执行请求！" {
+		t.Errorf("Unexpected result: %s", res)
+	}
+}
+```
+
+
+## composite
+
+```go
+package composite
+import "strings"
+
+type Component interface {
+	Add(c Component)
+	Remove(c Component)
+	Display(depth int) string
+}
+
+type Leaf struct {
+	name string
+}
+func NewLeaf(name string) *Leaf { return &Leaf{name: name} }
+func (l *Leaf) Add(c Component) {}
+func (l *Leaf) Remove(c Component) {}
+func (l *Leaf) Display(depth int) string {
+	return strings.Repeat("-", depth) + l.name
+}
+
+type Composite struct {
+	name     string
+	children []Component
+}
+func NewComposite(name string) *Composite { return &Composite{name: name, children: make([]Component, 0)} }
+func (c *Composite) Add(comp Component) { c.children = append(c.children, comp) }
+func (c *Composite) Remove(comp Component) {}
+func (c *Composite) Display(depth int) string {
+	res := strings.Repeat("-", depth) + c.name
+	for _, child := range c.children {
+		res += "\n" + child.Display(depth+2)
+	}
+	return res
+}
+```
+
+```go
+package composite
+import "testing"
+func TestComposite(t *testing.T) {
+	root := NewComposite("root")
+	root.Add(NewLeaf("Leaf A"))
+	comp := NewComposite("Composite X")
+	comp.Add(NewLeaf("Leaf XA"))
+	root.Add(comp)
+
+	res := root.Display(1)
+	expected := "-root\n---Leaf A\n---Composite X\n-----Leaf XA"
+	if res != expected {
+		t.Errorf("Expected:\n%s\nGot:\n%s", expected, res)
+	}
+}
+```
+
+
+## decorator
+
+```go
+package decorator
+
+type Component interface {
+	Operation() string
+}
+
+type ConcreteComponent struct{}
+func (c *ConcreteComponent) Operation() string { return "具体对象的操作" }
+
+type Decorator struct {
+	component Component
+}
+func (d *Decorator) SetComponent(c Component) { d.component = c }
+func (d *Decorator) Operation() string {
+	if d.component != nil {
+		return d.component.Operation()
+	}
+	return ""
+}
+
+type ConcreteDecoratorA struct {
+	Decorator
+	addedState string
+}
+func (c *ConcreteDecoratorA) Operation() string {
+	c.addedState = "New State"
+	return c.Decorator.Operation() + " 具体装饰对象A的操作"
+}
+
+type ConcreteDecoratorB struct {
+	Decorator
+}
+func (c *ConcreteDecoratorB) Operation() string {
+	return c.Decorator.Operation() + " 具体装饰对象B的操作"
+}
+```
+
+```go
+package decorator
+import "testing"
+func TestDecorator(t *testing.T) {
+	c := &ConcreteComponent{}
+	d1 := &ConcreteDecoratorA{}
+	d2 := &ConcreteDecoratorB{}
+
+	d1.SetComponent(c)
+	d2.SetComponent(d1)
+
+	res := d2.Operation()
+	expected := "具体对象的操作 具体装饰对象A的操作 具体装饰对象B的操作"
+	if res != expected {
+		t.Errorf("Expected: %s, Got: %s", expected, res)
+	}
+}
+```
+
+
+## flyweight
+
+```go
+package flyweight
+import "strconv"
+
+type Flyweight interface {
+	Operation(extrinsicstate int) string
+}
+
+type ConcreteFlyweight struct{}
+func (c *ConcreteFlyweight) Operation(extrinsicstate int) string {
+	return "具体Flyweight:" + strconv.Itoa(extrinsicstate)
+}
+
+type UnsharedConcreteFlyweight struct{}
+func (u *UnsharedConcreteFlyweight) Operation(extrinsicstate int) string {
+	return "不共享的具体Flyweight:" + strconv.Itoa(extrinsicstate)
+}
+
+type FlyweightFactory struct {
+	flyweights map[string]Flyweight
+}
+func NewFlyweightFactory() *FlyweightFactory {
+	f := &FlyweightFactory{flyweights: make(map[string]Flyweight)}
+	f.flyweights["X"] = &ConcreteFlyweight{}
+	f.flyweights["Y"] = &ConcreteFlyweight{}
+	f.flyweights["Z"] = &ConcreteFlyweight{}
+	return f
+}
+func (f *FlyweightFactory) GetFlyweight(key string) Flyweight {
+	return f.flyweights[key]
+}
+```
+
+```go
+package flyweight
+import "testing"
+func TestFlyweight(t *testing.T) {
+	extrinsicstate := 22
+	f := NewFlyweightFactory()
+	fx := f.GetFlyweight("X")
+	res := fx.Operation(extrinsicstate)
+	if res != "具体Flyweight:22" {
+		t.Errorf("Unexpected result: %s", res)
+	}
+}
+```
+
+
+## interpreter
+
+```go
+package interpreter
+
+type Context struct {
+	Input  string
+	Output string
+}
+
+type AbstractExpression interface {
+	Interpret(context *Context)
+}
+
+type TerminalExpression struct{}
+func (t *TerminalExpression) Interpret(context *Context) {
+	context.Output += "终端解释器"
+}
+
+type NonterminalExpression struct{}
+func (n *NonterminalExpression) Interpret(context *Context) {
+	context.Output += "非终端解释器"
+}
+```
+
+```go
+package interpreter
+import "testing"
+func TestInterpreter(t *testing.T) {
+	context := &Context{}
+	list := []AbstractExpression{
+		&TerminalExpression{},
+		&NonterminalExpression{},
+		&TerminalExpression{},
+	}
+	for _, exp := range list {
+		exp.Interpret(context)
+	}
+	if context.Output != "终端解释器非终端解释器终端解释器" {
+		t.Errorf("Unexpected output: %s", context.Output)
+	}
+}
+```
+
+
+## iterator
+
+```go
+package iterator
+
+type Iterator interface {
+	First() interface{}
+	Next() interface{}
+	IsDone() bool
+	CurrentItem() interface{}
+}
+
+type Aggregate interface {
+	CreateIterator() Iterator
+}
+
+type ConcreteAggregate struct {
+	items []interface{}
+}
+func NewConcreteAggregate() *ConcreteAggregate {
+	return &ConcreteAggregate{items: make([]interface{}, 0)}
+}
+func (c *ConcreteAggregate) CreateIterator() Iterator {
+	return NewConcreteIterator(c)
+}
+func (c *ConcreteAggregate) Count() int { return len(c.items) }
+func (c *ConcreteAggregate) Get(index int) interface{} { return c.items[index] }
+func (c *ConcreteAggregate) Set(index int, value interface{}) {
+	if index >= len(c.items) {
+		c.items = append(c.items, value)
+	} else {
+		c.items[index] = value
+	}
+}
+
+type ConcreteIterator struct {
+	aggregate *ConcreteAggregate
+	current   int
+}
+func NewConcreteIterator(aggregate *ConcreteAggregate) *ConcreteIterator {
+	return &ConcreteIterator{aggregate: aggregate, current: 0}
+}
+func (c *ConcreteIterator) First() interface{} { return c.aggregate.Get(0) }
+func (c *ConcreteIterator) Next() interface{} {
+	c.current++
+	if c.current < c.aggregate.Count() {
+		return c.aggregate.Get(c.current)
+	}
+	return nil
+}
+func (c *ConcreteIterator) IsDone() bool { return c.current >= c.aggregate.Count() }
+func (c *ConcreteIterator) CurrentItem() interface{} { return c.aggregate.Get(c.current) }
+```
+
+```go
+package iterator
+import "testing"
+func TestIterator(t *testing.T) {
+	a := NewConcreteAggregate()
+	a.Set(0, "A")
+	a.Set(1, "B")
+	a.Set(2, "C")
+
+	i := a.CreateIterator()
+	res := ""
+	for !i.IsDone() {
+		res += i.CurrentItem().(string)
+		i.Next()
+	}
+	if res != "ABC" {
+		t.Errorf("Unexpected result: %s", res)
+	}
+}
+```
+
+
+## mediator
+
+```go
+package mediator
+
+type Mediator interface {
+	Send(message string, colleague Colleague) string
+}
+
+type Colleague interface {
+	Send(message string) string
+	Notify(message string) string
+}
+
+type ConcreteMediator struct {
+	Colleague1 Colleague
+	Colleague2 Colleague
+}
+func (m *ConcreteMediator) Send(message string, colleague Colleague) string {
+	if colleague == m.Colleague1 {
+		return m.Colleague2.Notify(message)
+	}
+	return m.Colleague1.Notify(message)
+}
+
+type ConcreteColleague1 struct {
+	mediator Mediator
+}
+func NewConcreteColleague1(mediator Mediator) *ConcreteColleague1 { return &ConcreteColleague1{mediator: mediator} }
+func (c *ConcreteColleague1) Send(message string) string { return c.mediator.Send(message, c) }
+func (c *ConcreteColleague1) Notify(message string) string { return "同事1得到信息:" + message }
+
+type ConcreteColleague2 struct {
+	mediator Mediator
+}
+func NewConcreteColleague2(mediator Mediator) *ConcreteColleague2 { return &ConcreteColleague2{mediator: mediator} }
+func (c *ConcreteColleague2) Send(message string) string { return c.mediator.Send(message, c) }
+func (c *ConcreteColleague2) Notify(message string) string { return "同事2得到信息:" + message }
+```
+
+```go
+package mediator
+import "testing"
+func TestMediator(t *testing.T) {
+	m := &ConcreteMediator{}
+	c1 := NewConcreteColleague1(m)
+	c2 := NewConcreteColleague2(m)
+	m.Colleague1 = c1
+	m.Colleague2 = c2
+
+	res1 := c1.Send("吃饭了吗？")
+	if res1 != "同事2得到信息:吃饭了吗？" { t.Errorf("Error: %s", res1) }
+	res2 := c2.Send("没有呢，你打算请客？")
+	if res2 != "同事1得到信息:没有呢，你打算请客？" { t.Errorf("Error: %s", res2) }
+}
+```
+
+
+## memento
+
+```go
+package memento
+
+type Memento struct {
+	state string
+}
+func NewMemento(state string) *Memento { return &Memento{state: state} }
+func (m *Memento) State() string { return m.state }
+
+type Originator struct {
+	state string
+}
+func (o *Originator) State() string { return o.state }
+func (o *Originator) SetState(state string) { o.state = state }
+func (o *Originator) CreateMemento() *Memento { return NewMemento(o.state) }
+func (o *Originator) SetMemento(memento *Memento) { o.state = memento.State() }
+
+type Caretaker struct {
+	memento *Memento
+}
+func (c *Caretaker) Memento() *Memento { return c.memento }
+func (c *Caretaker) SetMemento(memento *Memento) { c.memento = memento }
+```
+
+```go
+package memento
+import "testing"
+func TestMemento(t *testing.T) {
+	o := &Originator{}
+	o.SetState("On")
+	c := &Caretaker{}
+	c.SetMemento(o.CreateMemento())
+
+	o.SetState("Off")
+	if o.State() != "Off" { t.Errorf("State should be Off") }
+
+	o.SetMemento(c.Memento())
+	if o.State() != "On" { t.Errorf("State should be On") }
+}
+```
+
+
+## state
+
+```go
+package state
+import "strconv"
+
+type Work struct {
+	hour  int
+	state State
+}
+func NewWork() *Work { return &Work{state: &MoringState{}} }
+func (w *Work) Hour() int { return w.hour }
+func (w *Work) SetHour(h int) { w.hour = h }
+func (w *Work) SetState(s State) { w.state = s }
+func (w *Work) WriteProgram() string { return w.state.WriteProgram(w) }
+
+type State interface {
+	WriteProgram(w *Work) string
+}
+
+type MoringState struct{}
+func (m *MoringState) WriteProgram(w *Work) string {
+	if w.Hour() < 12 { return "上午工作，精神百倍:" + strconv.Itoa(w.Hour()) }
+	w.SetState(&NoonState{})
+	return w.WriteProgram()
+}
+
+type NoonState struct{}
+func (n *NoonState) WriteProgram(w *Work) string {
+	if w.Hour() < 13 { return "饿了，午饭；犯困，午休:" + strconv.Itoa(w.Hour()) }
+	w.SetState(&AfternoonState{})
+	return w.WriteProgram()
+}
+
+type AfternoonState struct{}
+func (a *AfternoonState) WriteProgram(w *Work) string {
+	if w.Hour() < 17 { return "下午状态还不错，继续努力:" + strconv.Itoa(w.Hour()) }
+	w.SetState(&EveningState{})
+	return w.WriteProgram()
+}
+
+type EveningState struct{}
+func (e *EveningState) WriteProgram(w *Work) string {
+	if w.Hour() < 21 { return "加班哦，疲累之极:" + strconv.Itoa(w.Hour()) }
+	return "不行了，睡着了:" + strconv.Itoa(w.Hour())
+}
+```
+
+```go
+package state
+import "testing"
+func TestState(t *testing.T) {
+	w := NewWork()
+	w.SetHour(9)
+	if res := w.WriteProgram(); res != "上午工作，精神百倍:9" { t.Errorf("Error: %s", res) }
+	
+	w.SetHour(13)
+	if res := w.WriteProgram(); res != "下午状态还不错，继续努力:13" { t.Errorf("Error: %s", res) }
+	
+	w.SetHour(22)
+	if res := w.WriteProgram(); res != "不行了，睡着了:22" { t.Errorf("Error: %s", res) }
+}
+```
+
+
+## strategy
+
+```go
+package strategy
+
+type Strategy interface {
+	AlgorithmInterface() string
+}
+
+type ConcreteStrategyA struct{}
+func (c *ConcreteStrategyA) AlgorithmInterface() string { return "算法A实现" }
+
+type ConcreteStrategyB struct{}
+func (c *ConcreteStrategyB) AlgorithmInterface() string { return "算法B实现" }
+
+type ConcreteStrategyC struct{}
+func (c *ConcreteStrategyC) AlgorithmInterface() string { return "算法C实现" }
+
+type Context struct {
+	strategy Strategy
+}
+func NewContext(strategy Strategy) *Context { return &Context{strategy: strategy} }
+func (c *Context) ContextInterface() string { return c.strategy.AlgorithmInterface() }
+```
+
+```go
+package strategy
+import "testing"
+func TestStrategy(t *testing.T) {
+	context := NewContext(&ConcreteStrategyA{})
+	if res := context.ContextInterface(); res != "算法A实现" { t.Errorf("Error: %s", res) }
+
+	context = NewContext(&ConcreteStrategyB{})
+	if res := context.ContextInterface(); res != "算法B实现" { t.Errorf("Error: %s", res) }
+}
+```
+
+
+## template_method
+
+```go
+package template_method
+
+type AbstractClass interface {
+	PrimitiveOperation1() string
+	PrimitiveOperation2() string
+}
+
+type Template struct {
+	impl AbstractClass
+}
+func NewTemplate(impl AbstractClass) *Template { return &Template{impl: impl} }
+func (t *Template) TemplateMethod() string {
+	return t.impl.PrimitiveOperation1() + " " + t.impl.PrimitiveOperation2()
+}
+
+type ConcreteClassA struct{}
+func (c *ConcreteClassA) PrimitiveOperation1() string { return "具体类A方法1实现" }
+func (c *ConcreteClassA) PrimitiveOperation2() string { return "具体类A方法2实现" }
+
+type ConcreteClassB struct{}
+func (c *ConcreteClassB) PrimitiveOperation1() string { return "具体类B方法1实现" }
+func (c *ConcreteClassB) PrimitiveOperation2() string { return "具体类B方法2实现" }
+```
+
+```go
+package template_method
+import "testing"
+func TestTemplateMethod(t *testing.T) {
+	c := &ConcreteClassA{}
+	tmpl := NewTemplate(c)
+	if res := tmpl.TemplateMethod(); res != "具体类A方法1实现 具体类A方法2实现" {
+		t.Errorf("Error: %s", res)
+	}
+
+	c2 := &ConcreteClassB{}
+	tmpl2 := NewTemplate(c2)
+	if res := tmpl2.TemplateMethod(); res != "具体类B方法1实现 具体类B方法2实现" {
+		t.Errorf("Error: %s", res)
+	}
+}
+```
+
+
+## visitor
+
+```go
+package visitor
+
+type Visitor interface {
+	VisitConcreteElementA(a *ConcreteElementA) string
+	VisitConcreteElementB(b *ConcreteElementB) string
+}
+
+type Element interface {
+	Accept(visitor Visitor) string
+}
+
+type ConcreteElementA struct{}
+func (c *ConcreteElementA) Accept(visitor Visitor) string { return visitor.VisitConcreteElementA(c) }
+func (c *ConcreteElementA) OperationA() string { return "具体元素A的操作" }
+
+type ConcreteElementB struct{}
+func (c *ConcreteElementB) Accept(visitor Visitor) string { return visitor.VisitConcreteElementB(c) }
+func (c *ConcreteElementB) OperationB() string { return "具体元素B的操作" }
+
+type ConcreteVisitor1 struct{}
+func (c *ConcreteVisitor1) VisitConcreteElementA(a *ConcreteElementA) string {
+	return "访问者1 访问了 " + a.OperationA()
+}
+func (c *ConcreteVisitor1) VisitConcreteElementB(b *ConcreteElementB) string {
+	return "访问者1 访问了 " + b.OperationB()
+}
+
+type ObjectStructure struct {
+	elements []Element
+}
+func (o *ObjectStructure) Attach(element Element) { o.elements = append(o.elements, element) }
+func (o *ObjectStructure) Accept(visitor Visitor) string {
+	res := ""
+	for _, val := range o.elements {
+		res += val.Accept(visitor) + "\n"
+	}
+	return res
+}
+```
+
+```go
+package visitor
+import "testing"
+func TestVisitor(t *testing.T) {
+	o := &ObjectStructure{}
+	o.Attach(&ConcreteElementA{})
+	o.Attach(&ConcreteElementB{})
+
+	v := &ConcreteVisitor1{}
+	res := o.Accept(v)
+	expected := "访问者1 访问了 具体元素A的操作\n访问者1 访问了 具体元素B的操作\n"
+	if res != expected {
+		t.Errorf("Expected:\n%s\nGot:\n%s", expected, res)
+	}
+}
 ```
 

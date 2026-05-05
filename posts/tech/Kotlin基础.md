@@ -821,14 +821,16 @@ class Car(
     override var wheels: Int = 4
 ) : Movable {
     override var maxSpeed: Int
-        get() = TODO("Not yet implemented")
+        get() = _maxSpeed
         set(value) {
-            1
+            _maxSpeed = value
         }
+    private var _maxSpeed: Int = 180
 
     override fun move(movable: Movable): String {
-        TODO("Not yet implemented")
+        return "${_name} is moving at ${_maxSpeed}km/h with ${wheels} wheels"
     }
+    private val _name: String = _name
 }
 
 fun main() {

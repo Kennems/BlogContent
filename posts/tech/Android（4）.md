@@ -63,7 +63,6 @@ public class UserInfoProvider extends ContentProvider {
 
     @Override
     public boolean onCreate() {
-        // TODO: Implement this to initialize your content provider on startup.
         Log.d(TAG, "ContentProvider onCreate: ");
         dbHelper = UserDBHelper.getInstance(getContext());
         return true;
@@ -111,16 +110,33 @@ public class UserInfoProvider extends ContentProvider {
 
     @Override
     public String getType(Uri uri) {
-        // TODO: Implement this to handle requests for the MIME type of the data
-        // at the given URI.
-        throw new UnsupportedOperationException("Not yet implemented");
+        switch (URI_MATCHER.match(uri)) {
+            case USER:
+                // 返回单条数据的 MIME 类型
+                return "vnd.android.cursor.item/vnd.com.showguan.user";
+            case USERS:
+                // 返回多条数据的 MIME 类型
+                return "vnd.android.cursor.dir/vnd.com.showguan.user";
+            default:
+                throw new IllegalArgumentException("Unknown URI: " + uri);
+        }
     }
 
     @Override
     public int update(Uri uri, ContentValues values, String selection,
                       String[] selectionArgs) {
-        // TODO: Implement this to handle requests to update one or more rows.
-        throw new UnsupportedOperationException("Not yet implemented");
+        int count = 0;
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        switch (URI_MATCHER.match(uri)) {
+            case USER:
+                String id = uri.getLastPathSegment();
+                count = db.update(UserDBHelper.TABLE_NAME, values, "_id = ?", new String[]{id});
+                break;
+            case USERS:
+                count = db.update(UserDBHelper.TABLE_NAME, values, selection, selectionArgs);
+                break;
+        }
+        return count;
     }
 
 }

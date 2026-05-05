@@ -326,7 +326,7 @@ fun ConstraintsLayoutContent() {
     ConstraintLayout {
         val (button, text) = createRefs()
         Button(
-            onClick = { /*TODO*/ },
+            onClick = { /* 按钮点击事件 */ },
             modifier = Modifier.constrainAs(button) {
                 top.linkTo(parent.top, margin = 16.dp)
                 start.linkTo(parent.start, margin = 16.dp)
