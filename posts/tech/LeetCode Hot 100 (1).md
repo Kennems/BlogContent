@@ -1343,6 +1343,93 @@ func (this *LRUCache) removeTail() *DoubleLinkedList {
 }
 ```
 
+## [460. LFU 缓存](https://leetcode.cn/problems/lfu-cache/)
+
+请你为 [最不经常使用（LFU）](https://baike.baidu.com/item/缓存算法)缓存算法设计并实现数据结构。
+
+实现 `LFUCache` 类：
+
+- `LFUCache(int capacity)` - 用数据结构的容量 `capacity` 初始化对象
+- `int get(int key)` - 如果键 `key` 存在于缓存中，则获取键的值，否则返回 `-1` 。
+- `void put(int key, int value)` - 如果键 `key` 已存在，则变更其值；如果键不存在，请插入键值对。当缓存达到其容量 `capacity` 时，则应该在插入新项之前，移除最不经常使用的项。在此问题中，当存在平局（即两个或更多个键具有相同使用频率）时，应该去除 **最久未使用** 的键。
+
+为了确定最不常使用的键，可以为缓存中的每个键维护一个 **使用计数器** 。使用计数最小的键是最久未使用的键。
+
+当一个键首次插入到缓存中时，它的使用计数器被设置为 `1` (由于 put 操作)。对缓存中的键执行 `get` 或 `put` 操作，使用计数器的值将会递增。
+
+函数 `get` 和 `put` 必须以 `O(1)` 的平均时间复杂度运行。
+
+```py
+class Node:
+    # 提高访问属性的速度，并节省内存
+    __slots__ = "prev", "next", "key", "value", "freq"
+
+    def __init__(self, key=0, val=0):
+        self.key = key
+        self.value = val
+        self.freq = 1  #  新书只读了一次
+
+
+class LFUCache:
+    def __init__(self, capacity: int):
+        self.capacity = capacity
+        self.key_to_node = {}
+
+        def new_list() -> Node:
+            dummy = Node()  # 哨兵节点
+            dummy.prev = dummy
+            dummy.next = dummy
+            return dummy
+
+        self.freq_to_dummy = defaultdict(new_list)
+
+    def get_node(self, key: int) -> Optional[Node]:
+        if key not in self.key_to_node:  # 没有这本书
+            return None
+        node = self.key_to_node[key]  # 有这本书
+        self.remove(node)  # 把这本书抽出来
+        dummy = self.freq_to_dummy[node.freq]
+        if dummy.prev == dummy:  # 抽出来后，这摞书是空的
+            del self.freq_to_dummy[node.freq]  # 移除空链表
+            if self.min_freq == node.freq:  # 这摞书是最左边的
+                self.min_freq += 1
+        node.freq += 1  # 看书次数 +1
+        self.push_front(self.freq_to_dummy[node.freq], node)  # 放在右边这摞书的最上面
+        return node
+
+    def get(self, key: int) -> int:
+        node = self.get_node(key)
+        return node.value if node else -1
+
+    def put(self, key: int, value: int) -> None:
+        node = self.get_node(key)
+        if node:  # 有这本书
+            node.value = value  # 更新 value
+            return
+        if len(self.key_to_node) == self.capacity:  # 书太多了
+            dummy = self.freq_to_dummy[self.min_freq]
+            back_node = dummy.prev  # 最左边那摞书的最下面的书
+            del self.key_to_node[back_node.key]
+            self.remove(back_node)  # 移除
+            if dummy.prev == dummy:  # 这摞书是空的
+                del self.freq_to_dummy[self.min_freq]  # 移除空链表
+        self.key_to_node[key] = node = Node(key, value)  # 新书
+        self.push_front(self.freq_to_dummy[1], node)  # 放在「看过 1 次」的最上面
+        self.min_freq = 1
+
+    # 删除一个节点（抽出一本书）
+    def remove(self, x: Node) -> None:
+        x.prev.next = x.next
+        x.next.prev = x.prev
+
+    # 在链表头添加一个节点（把一本书放到最上面）
+    def push_front(self, dummy: Node, x: Node) -> None:
+        x.prev = dummy
+        x.next = dummy.next
+        x.prev.next = x
+        x.next.prev = x
+```
+
 ## (19)[142. 环形链表 II](https://leetcode.cn/problems/linked-list-cycle-ii/)
 
 **1、题目大意**
@@ -1451,3 +1538,36 @@ class Solution:
         return True 
 ```
 
+## [93. 复原 IP 地址](https://leetcode.cn/problems/restore-ip-addresses/)
+
+**题目大意**：给定一个只包含数字的字符串s，表示一个IP地址，要求返回所有可能的有效IP地址，即每个IP地址由四个整数组成（每个整数位于`0`到`255`之间，且不能含有前导0），整数之间用`'.'`分隔。不能重新排序或删除s中的任何数字，可以按任何顺序返回答案。
+
+**实现思路**：使用深度优先搜索`（DFS）`算法，递归地搜索所有可能的IP地址组合。在搜索过程中，首先确定每个整数的范围，然后遍历可能的数字组合，逐步构建`IP`地址。递归的终止条件是已经找到了四个整数并且已经遍历完了整个字符串s。
+
+```py
+class Solution:
+    def restoreIpAddresses(self, s: str) -> List[str]:
+        n = len(s)
+        res, addr = [], ['0']*4
+
+        def dfs(i, start):
+            if i==4 or start==n:
+                if i==4 and start==n:
+                    res.append('.'.join(addr))
+                return 
+            
+            if s[start]=='0':
+                addr[i] = '0'
+                dfs(i+1, start+1)
+                return 
+            
+            num = 0
+            for end in range(start, n):
+                num = num*10 + int(s[end])
+                if num in range(256):
+                    addr[i] = str(num)
+                    dfs(i+1, end+1)
+
+        dfs(0, 0)           
+        return res
+```
