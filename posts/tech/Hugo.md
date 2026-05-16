@@ -703,3 +703,39 @@ cover:
 ```
 
 ## 自定义底部categories
+
+在 `layouts/_default/single.html` 或 `layouts/_default/_markup/render-link.html` 中自定义底部分类显示。
+
+使用 CSS 自定义样式：
+
+```css
+.post-categories {
+    margin-top: 1rem;
+    padding: 0.5rem 1rem;
+    background: var(--entry);
+    border-radius: 8px;
+}
+
+.post-categories a {
+    margin-right: 0.5rem;
+    padding: 0.25rem 0.75rem;
+    background: var(--tertiary);
+    border-radius: 4px;
+    font-size: 0.875rem;
+    color: var(--secondary);
+    text-decoration: none;
+}
+
+.post-categories a:hover {
+    background: var(--highlight);
+    color: var(--primary);
+}
+```
+
+在 `config.yaml` 中配置分类显示：
+
+```yaml
+params:
+    ShowCategories: true
+    ShowCategoryCount: true
+```

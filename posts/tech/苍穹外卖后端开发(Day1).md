@@ -125,6 +125,18 @@ nginx负载均衡策略：
         password = DigestUtils.md5DigestAsHex(password.getBytes());
 ```
 
+登录时验证密码，将用户输入的密码同样 MD5 加密后与数据库中的密文比对：
+
+```java
+// 登录验证
+String inputPasswordMd5 = DigestUtils.md5DigestAsHex(inputPassword.getBytes());
+if (!inputPasswordMd5.equals(userFromDb.getPassword())) {
+    throw new PasswordErrorException("密码错误");
+}
+```
+
+> 注意：MD5 已不推荐用于密码存储，生产环境建议使用 BCrypt 或 Argon2 等带盐值的哈希算法。
+
 ## 导入接口文档
 
 ![image-20241011214624732](https://raw.githubusercontent.com/Kennems/blog-image/main/image-20241011214624732.png)

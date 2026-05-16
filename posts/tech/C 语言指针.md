@@ -621,6 +621,36 @@ int main(int argc, char const *argv[])
 }
 ```
 
+## 指针进阶总结
 
+### 函数指针回调
 
-## 
+```c
+// 用函数指针实现回调
+void processNumbers(int *arr, int size, int (*operation)(int)) {
+    for (int i = 0; i < size; i++) {
+        arr[i] = operation(arr[i]);
+    }
+}
+int square(int x) { return x * x; }
+int arr[] = {1, 2, 3, 4};
+processNumbers(arr, 4, square);  // 传函数指针
+```
+
+### 多级指针
+
+```c
+int x = 10;
+int *p = &x;     // 一级指针，存 x 的地址
+int **pp = &p;   // 二级指针，存 p 的地址
+int ***ppp = &pp; // 三级指针
+printf("%d\n", ***ppp);  // 10，三级解引用
+```
+
+### 指针与 `const`
+
+```c
+const int *p1;           // 指向常量的指针——不能通过 p1 修改值
+int *const p2 = &x;      // 常量指针——p2 不能指向别处
+const int *const p3 = &x; // 两者都不能改
+```

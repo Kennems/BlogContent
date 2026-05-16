@@ -373,9 +373,6 @@ func invertTree(root *TreeNode) *TreeNode {
 
 **3、实现代码**
 
-```
-
-```
 
 ```py
 class Solution:

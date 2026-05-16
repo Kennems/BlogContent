@@ -19,6 +19,12 @@ tags : ["LeetCode Hot 100"]
 
 二叉树的 **最大深度** 是指从根节点到最远叶子节点的最长路径上的节点数。
 
+**题目大意**：
+求二叉树从根到最远叶子节点的最长路径上的节点数。
+
+**解题思路**：
+DFS递归，深度 = max(左子树深度, 右子树深度) + 1。
+
 ```py
 # Definition for a binary tree node.
 # class TreeNode:
@@ -40,6 +46,12 @@ class Solution:
 ##   (82)[102. 二叉树的层序遍历](https://leetcode.cn/problems/binary-tree-level-order-traversal/)
 
 给你二叉树的根节点 `root` ，返回其节点值的 **层序遍历** 。 （即逐层地，从左到右访问所有节点）。
+
+**题目大意**：
+逐层从左到右遍历二叉树，返回每层节点值的列表。
+
+**解题思路**：
+BFS 广度优先搜索，使用队列存储 (节点, 层号)，按层收集节点值。
 
 ```py
 # Definition for a binary tree node.
@@ -75,6 +87,12 @@ class Solution:
 
 给你一个二叉树的根节点 `root` ， 检查它是否轴对称。
 
+**题目大意**：
+判断二叉树是否左右镜像对称。
+
+**解题思路**：
+递归比较左右子树的镜像节点：左的左 vs 右的右，左的右 vs 右的左。
+
 ```py
 # Definition for a binary tree node.
 # class TreeNode:
@@ -106,6 +124,12 @@ class Solution:
 - 节点的左子树只包含 **严格小于** 当前节点的数。
 - 节点的右子树只包含 **严格大于** 当前节点的数。
 - 所有左子树和右子树自身必须也是二叉搜索树。
+
+**题目大意**：
+判断二叉树是否满足 BST 性质：左子树所有节点 < 根 < 右子树所有节点。
+
+**解题思路**：
+中序遍历，检查节点值是否严格递增；使用全局变量 pre 记录前一个节点值。
 
 ```py
 # Definition for a binary tree node.
@@ -166,9 +190,35 @@ class Solution:
 ```
 
 
-## 
+## (86)[94. 二叉树的中序遍历](https://leetcode.cn/problems/binary-tree-inorder-traversal/)
 
-## (86)94. 二叉树的中序遍历
+**题目大意**：
+给定一个二叉树的根节点 `root`，返回它的中序遍历结果。
+
+**解题思路**：
+递归遍历：先左子树，再根节点，最后右子树。
+
+```py
+# Definition for a binary tree node.
+# class TreeNode:
+#     def __init__(self, val=0, left=None, right=None):
+#         self.val = val
+#         self.left = left
+#         self.right = right
+class Solution:
+    def inorderTraversal(self, root: Optional[TreeNode]) -> List[int]:
+        res = []
+        
+        def dfs(r):
+            if not r:
+                return
+            dfs(r.left)
+            res.append(r.val)
+            dfs(r.right)
+        
+        dfs(root)
+        return res
+```
 
 ## (87)[85. 最大矩形](https://leetcode.cn/problems/maximal-rectangle/)
 
@@ -283,6 +333,12 @@ class Solution:
 
 你可以按任意顺序返回答案。
 
+**题目大意**：
+在数组中找两个和为 target 的数，返回它们的下标。
+
+**解题思路**：
+哈希表一次遍历：对每个数，检查 target-num 是否在哈希表中，在则返回，不在则将当前数存入。
+
 ```py
 class Solution:
     def twoSum(self, nums: List[int], target: int) -> List[int]:
@@ -302,6 +358,12 @@ class Solution:
 给你一个整数数组 `nums` ，数组中的元素 **互不相同** 。返回该数组所有可能的子集（幂集）。
 
 解集 **不能** 包含重复的子集。你可以按 **任意顺序** 返回解集。
+
+**题目大意**：
+返回数组所有可能的子集（幂集）。
+
+**解题思路**：
+DFS 回溯，对每个元素做"选或不选"的二元决策，收集所有选择路径。
 
 ```py
 class Solution:
@@ -363,45 +425,6 @@ class Solution:
         return s[res[0]:res[1]+1] if res[1] < m else ""
 ```
 
-```go
-func findAnagrams(s string, p string) []int {
-	n, m := len(s), len(p)
-	cnt := m
-	res := []int{}
-
-	d := make(map[byte]int)
-	for i := 0; i < m; i++ {
-		d[p[i]]++
-	}
-
-	j := 0
-	for i := 0; i < n; i++ {
-		for i-j+1 > m {
-			if v, ok := d[s[j]]; ok {
-				d[s[j]]++
-				if v+1 > 0 {
-					cnt++
-				}
-			}
-			j++
-		}
-
-		if v, ok := d[s[i]]; ok {
-			if v > 0 {
-				cnt--
-			}
-			d[s[i]]--
-		}
-
-		if cnt == 0 {
-			res = append(res, j)
-		}
-	}
-
-	return res
-}
-```
-
 ## (92)[75. 颜色分类](https://leetcode.cn/problems/sort-colors/)
 
 给定一个包含红色、白色和蓝色、共 `n` 个元素的数组 `nums` ，**[原地](https://baike.baidu.com/item/原地算法)** 对它们进行排序，使得相同颜色的元素相邻，并按照红色、白色、蓝色顺序排列。
@@ -409,6 +432,12 @@ func findAnagrams(s string, p string) []int {
 我们使用整数 `0`、 `1` 和 `2` 分别表示红色、白色和蓝色。
 
 必须在不使用库内置的 sort 函数的情况下解决这个问题。
+
+**题目大意**：
+原地排序只含 0、1、2 的数组，使得相同颜色相邻。
+
+**解题思路**：
+快速排序（荷兰国旗问题），用分治法对 0/1/2 三色进行排序。
 
 ```py
 class Solution:
@@ -492,6 +521,12 @@ class Solution:
 
 每次你可以爬 `1` 或 `2` 个台阶。你有多少种不同的方法可以爬到楼顶呢？
 
+**题目大意**：
+每次爬 1 或 2 阶，求到第 n 阶的不同方法数。
+
+**解题思路**：
+动态规划（斐波那契数列），f[i] = f[i-1] + f[i-2]。
+
 ```py
 class Solution:
     def climbStairs(self, n: int) -> int:
@@ -545,6 +580,12 @@ class Solution:
 
 **说明：**每次只能向下或者向右移动一步。
 
+**题目大意**：
+求从网格左上角到右下角的最小路径数字和，只能向右或向下移动。
+
+**解题思路**：
+DP，f[i][j] = min(f[i-1][j], f[i][j-1]) + grid[i-1][j-1]。
+
 ```py
 class Solution:
     def minPathSum(self, grid: List[List[int]]) -> int:
@@ -569,6 +610,12 @@ class Solution:
 
 问总共有多少条不同的路径？
 
+**题目大意**：
+求 m x n 网格从左上角到右下角的不同路径数，只能向右或向下移动。
+
+**解题思路**：
+DP，f[i][j] = f[i-1][j] + f[i][j-1]，起点 f[1][1] = 1。
+
 ```py
 class Solution:
     def uniquePaths(self, m: int, n: int) -> int:
@@ -590,6 +637,12 @@ class Solution:
 ## (98)[56. 合并区间](https://leetcode.cn/problems/merge-intervals/)
 
 以数组 `intervals` 表示若干个区间的集合，其中单个区间为 `intervals[i] = [starti, endi]` 。请你合并所有重叠的区间，并返回 *一个不重叠的区间数组，该数组需恰好覆盖输入中的所有区间* 。
+
+**题目大意**：
+合并所有有重叠的区间，返回不重叠的区间数组。
+
+**解题思路**：
+按左端点排序，遍历合并：如果当前区间左端点 > 当前合并区间的右端点，说明不重叠，加入结果并更新；否则扩展右端点。
 
 ```py
 class Solution:
@@ -622,6 +675,12 @@ class Solution:
 给你一个非负整数数组 `nums` ，你最初位于数组的 **第一个下标** 。数组中的每个元素代表你在该位置可以跳跃的最大长度。
 
 判断你是否能够到达最后一个下标，如果可以，返回 `true` ；否则，返回 `false` 。
+
+**题目大意**：
+判断能否从数组起始位置跳到末尾，每步最多跳 nums[i] 步。
+
+**解题思路**：
+贪心，维护最远可到达位置 ed，如果当前位置 i 可达则更新 ed = max(ed, i + nums[i])。
 
 ```py
 class Solution:

@@ -288,4 +288,35 @@ resize2fs /dev/centos/root
 df -h
 ```
 
-## 
+## 常见问题与故障排查
+
+### 扩展后 df 未变化
+
+如果 `df -h` 显示的容量未更新，需要**在线扩容文件系统**：
+
+```bash
+# XFS 文件系统（CentOS/RHEL 7+ 默认）
+xfs_growfs /dev/mapper/centos-root
+
+# ext4 文件系统
+resize2fs /dev/centos/root
+```
+
+### 检查 LVM 空间分配
+
+```bash
+# 查看卷组剩余空间
+vgdisplay | grep Free
+
+# 查看逻辑卷信息
+lvdisplay
+```
+
+### 扩展流程回顾
+
+1. **VMware/宿主机** → 扩展虚拟磁盘
+2. **fdisk/parted** → 创建/扩展分区
+3. **pvresize** → 扩展 PV
+4. **lvextend** → 扩展 LV
+5. **xfs_growfs / resize2fs** → 扩展文件系统
+6. **df -h** → 确认结果

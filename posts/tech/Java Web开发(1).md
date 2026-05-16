@@ -753,6 +753,9 @@ for (let i = 0; i < ins.length; i++) {
 
 ```
 
+## 小结
 
-
-## 
+- Java Web 是基于 Java 技术的 Web 应用开发，核心组件包括 Servlet、JSP 和 JDBC
+- Servlet 处理 HTTP 请求，JSP 用于页面展示，JDBC 连接数据库
+- MVC 架构将业务逻辑、数据显示和用户交互分离，提高代码可维护性
+- 开发时需注意编码设置、会话管理和错误处理

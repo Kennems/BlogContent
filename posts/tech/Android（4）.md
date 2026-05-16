@@ -1296,5 +1296,12 @@ public class ProviderApkActivity extends AppCompatActivity implements View.OnCli
 
 ```
 
-### 
+### APK 安装常见问题
+
+| 问题 | 原因 | 解决方案 |
+|------|------|----------|
+| `INSTALL_FAILED_ALREADY_EXISTS` | 设备上已存在同包名应用 | 卸载旧版本或使用 `adb install -r` 覆盖安装 |
+| `INSTALL_FAILED_INSUFFICIENT_STORAGE` | 设备存储空间不足 | 清理设备存储空间 |
+| `INSTALL_PARSE_FAILED_INCONSISTENT_CERTIFICATES` | 签名不一致 | 卸载旧版本或使用相同签名文件 |
+| `INSTALL_FAILED_UPDATE_INCOMPATIBLE` | 版本不兼容 | 卸载旧版本后重新安装 |
 

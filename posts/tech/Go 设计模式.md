@@ -551,16 +551,23 @@ func TestBuilder(t *testing.T) {
 		name     string
 		builder  Builder
 		expected interface{}
+		getRes   func() interface{}
 	}{
 		{
 			name:     "Builder1",
 			builder:  &Builder1{},
 			expected: "123",
+			getRes: func() interface{} {
+				return (&Builder1{}).GetResult()
+			},
 		},
 		{
 			name:     "Builder2",
 			builder:  &Builder2{},
 			expected: 6,
+			getRes: func() interface{} {
+				return (&Builder2{}).GetResult()
+			},
 		},
 	}
 
@@ -848,793 +855,1677 @@ func TestObserver(t *testing.T) {
 ```
 
 
-## bridge Bridge
+
+## interpreter 解释器模式
+
+```go
+/*
+ Interpreter 解释器模式：
+        给定一个语言，定义它的文法的一种表示，
+		并定义一个解释器，这个解释器使用该表示来解释语言中的句子
+ 个人想法：
+ 日期：   20170310
+*/
+
+package test
+
+import (
+	"fmt"
+)
+
+type Context struct {
+	text string
+}
+
+// 抽象表达式
+type IAbstractExpression interface {
+	Interpret(*Context)
+}
+
+// 终结符表达式
+type TerminalExpression struct {
+}
+
+func (t *TerminalExpression) Interpret(context *Context) {
+	if t == nil {
+		return
+	}
+	context.text = context.text[:len(context.text)-1]
+	fmt.Println(context)
+}
+
+// 非终结符表达式
+type NonterminalExpression struct {
+}
+
+func (t *NonterminalExpression) Interpret(context *Context) {
+	if t == nil {
+		return
+	}
+	context.text = context.text[:len(context.text)-1]
+	fmt.Println(context)
+}
+```
+
+```go
+package test
+
+import (
+	"testing"
+)
+
+func TestInterpreter(t *testing.T) {
+	context := Context{"abc"}
+
+	list := []IAbstractExpression{}
+
+	list = append(list, new(TerminalExpression))
+	list = append(list, new(TerminalExpression))
+	list = append(list, new(NonterminalExpression))
+
+	for _, val := range list {
+		val.Interpret(&context)
+	}
+}
+```
+
+## template_method 模板方法模式
+
+```go
+/*
+   Template Methed模板方法：
+        定义一个操作中的算法的骨架，而将一些具体步骤延迟到子类中。
+		模板方法使得子类可以不改变一个算法的结构即可重定义该算法的某些特定步骤。
+ 个人想法：与建造者：一个是行为型模式，一个是创建型模式
+*/
+package test
+
+import (
+	"fmt"
+)
+
+type getfood interface {
+	first()
+	secend()
+	three()
+}
+
+type template struct {
+	g getfood
+}
+
+func (b *template) getsomefood() {
+	if b == nil {
+		return
+	}
+	b.g.first()
+	b.g.secend()
+	b.g.three()
+}
+
+type bingA struct {
+	template
+}
+
+func NewBingA() *bingA {
+	b := bingA{}
+	return &b
+}
+
+func (b *bingA) first() {
+	if b == nil {
+		return
+	}
+	fmt.Println("打开冰箱")
+}
+
+func (b *bingA) secend() {
+	if b == nil {
+		return
+	}
+	fmt.Println("拿出东西")
+}
+
+func (b *bingA) three() {
+	if b == nil {
+		return
+	}
+	fmt.Println("关闭冰箱")
+}
+
+type Guo struct {
+	template
+}
+
+func NewGuo() *Guo {
+	b := Guo{}
+	return &b
+}
+
+func (b *Guo) first() {
+	if b == nil {
+		return
+	}
+	fmt.Println("打开锅")
+}
+
+func (b *Guo) secend() {
+	if b == nil {
+		return
+	}
+	fmt.Println("拿出东西锅")
+}
+
+func (b *Guo) three() {
+	if b == nil {
+		return
+	}
+	fmt.Println("关闭锅")
+}
+```
+
+```go
+package test
+
+import (
+	"testing"
+)
+
+func TestTemplate(t *testing.T) {
+	b := NewBingA()
+	b.g = b
+	b.getsomefood()
+
+	g := NewGuo()
+	g.g = g
+	g.getsomefood()
+}
+```
+
+## decorator 装饰器模式
+
+```go
+/*
+  Decorator 装饰模式：
+        动态地给一个对象添加一些额外的职责，就增加功能来说，装饰模式比生成子类更为灵活。
+ 个人想法：注意装饰器内部维护一个对象，所有装饰器的子类在操作时，必须调用父类的函数，一直从下到上再到下的感觉
+ 日期：   20170308
+*/
+package test
+
+import (
+	"fmt"
+)
+
+type person struct {
+	Name string
+}
+
+func (p *person) show() {
+	if p == nil {
+		return
+	}
+	fmt.Println("姓名：", p.Name)
+}
+
+type AbsstractPerson interface {
+	show()
+}
+type Decorator struct {
+	AbsstractPerson
+}
+
+func (d *Decorator) SetDecorator(component AbsstractPerson) {
+	if d == nil {
+		return
+	}
+	d.AbsstractPerson = component
+}
+
+func (d *Decorator) show() {
+	if d == nil {
+		return
+	}
+	if d.AbsstractPerson != nil {
+		d.AbsstractPerson.show()
+	}
+}
+
+type TShirts struct {
+	Decorator
+}
+
+func (t *TShirts) show() {
+	if t == nil {
+		return
+	}
+	t.Decorator.show()
+	fmt.Println("T恤")
+}
+
+type BigTrouser struct {
+	Decorator
+}
+
+func (b *BigTrouser) show() {
+	if b == nil {
+		return
+	}
+	b.Decorator.show()
+	fmt.Println("大裤衩")
+}
+
+type Sneakers struct {
+	Decorator
+}
+
+func (b *Sneakers) show() {
+	if b == nil {
+		return
+	}
+	b.Decorator.show()
+	fmt.Println("破球鞋")
+}
+```
+
+```go
+package test
+
+import (
+	"fmt"
+	"testing"
+)
+
+func TestDecorator(t *testing.T) {
+	person := &person{"hcl"}
+	person.show()
+	fmt.Println()
+	ts := new(TShirts)
+	ts.SetDecorator(person)
+	ts.show()
+	fmt.Println()
+	bt := new(BigTrouser)
+	bt.SetDecorator(ts)
+	bt.show()
+	fmt.Println()
+	sk := new(Sneakers)
+	sk.SetDecorator(bt)
+	sk.show()
+}
+```
+
+## chain_of_responsibility 责任链模式
+
+```go
+/*
+ Chain Of Responsibility 职责链模式：
+        使多个对象都有机会处理请求，从而避免请求的发送者和接收者之间的耦合关系。
+        将这些对象连成一条链，并沿着这条链传递该请求，直到有一个对象处理它为止
+
+ 个人想法：MFC的消息队列机制
+*/
+package test
+
+import (
+	"fmt"
+)
+
+const (
+	constHandler = iota
+	constHandlerA
+	constHandlerB
+)
+
+// 处理请求接口
+type IHandler interface {
+	SetSuccessor(IHandler)
+	HandleRequest(int) int
+}
+
+// 实现处理请求的接口的基本结构体类型
+type Handler struct {
+	successor IHandler // 继承者
+}
+
+func (h *Handler) SetSuccessor(i IHandler) {
+	if h == nil {
+		return
+	}
+	h.successor = i
+}
+
+// 具体处理结构体，这里简单处理int类型的请求，判断是否在[1-10]之间，是：处理，否：交给successor处理
+type ConcreteHandlerA struct {
+	Handler
+}
+
+func (c *ConcreteHandlerA) HandleRequest(req int) int {
+	if c == nil {
+		return constHandler
+	}
+	if req > 0 && req < 11 {
+		fmt.Println("ConcreteHandlerA可以处理这个请求")
+		return constHandlerA
+	} else if c.successor != nil {
+		return c.successor.HandleRequest(req)
+	}
+	return constHandler
+}
+
+func NewConcreteHandlerA() *ConcreteHandlerA {
+	return &ConcreteHandlerA{}
+}
+
+// 具体处理结构体，这里简单处理int类型的请求，判断是否在[11-20]之间，是：处理，否：交给successor处理
+type ConcreteHandlerB struct {
+	Handler
+}
+
+func (c *ConcreteHandlerB) HandleRequest(req int) int {
+	if c == nil {
+		return constHandler
+	}
+	if req > 10 && req < 21 {
+		fmt.Println("ConcreteHandlerB可以处理这个请求")
+		return constHandlerB
+	} else if c.successor != nil {
+		return c.successor.HandleRequest(req)
+	}
+	return constHandler
+}
+
+func NewConcreteHandlerB() *ConcreteHandlerB {
+	return &ConcreteHandlerB{}
+}
+```
+
+```go
+package test
+
+import (
+	"testing"
+)
+
+func TestChainOfResponsibility(t *testing.T) {
+	ca := NewConcreteHandlerA()
+	cb := NewConcreteHandlerB()
+	ca.SetSuccessor(cb)
+
+	var req = [][]int{{1, constHandlerA}, {4, constHandlerA}, {11, constHandlerB}, {0, constHandler}}
+	for _, val := range req {
+		if val[1] != ca.HandleRequest(val[0]) {
+			t.Error("错误")
+		}
+	}
+}
+```
+
+## bridge 桥接模式
 
 ```go
 /*
   Bridge 桥接模式：
         将抽象部分与它的实现部分分离，使它们都可以独立地变化
  个人想法：组合/聚合复用原则
+ 日期：   20170306
+*/
 
-## bridge
+package test
 
-```go
-package bridge
+import (
+	"fmt"
+)
 
-type Software interface {
-	Run() string
+type Phone struct {
+	soft ISoftware
+	name string
 }
 
-type SoftwareA struct{}
-func (s *SoftwareA) Run() string { return "run soft a" }
+func (p *Phone) setSoft(soft ISoftware) {
+	if p == nil {
+		return
+	}
+	p.soft = soft
+}
 
-type SoftwareB struct{}
-func (s *SoftwareB) Run() string { return "run soft b" }
-
-type Phone interface {
-	SetSoft(software Software)
-	Run() string
+func (p *Phone) Run() {
+	if p == nil {
+		return
+	}
+	fmt.Println(p.name)
+	p.soft.Run()
 }
 
 type PhoneA struct {
-	soft Software
-	name string
+	Phone
 }
-func NewPhoneA(name string) *PhoneA { return &PhoneA{name: name} }
-func (p *PhoneA) SetSoft(software Software) { p.soft = software }
-func (p *PhoneA) Run() string { return "PhoneA " + p.name + " run: " + p.soft.Run() }
+
+func NewPhoneA(name string) *PhoneA {
+	return &PhoneA{Phone{name: name}}
+}
 
 type PhoneB struct {
-	soft Software
+	Phone
+}
+
+func NewPhoneB(name string) *PhoneB {
+	return &PhoneB{Phone{name: name}}
+}
+
+type ISoftware interface {
+	Run()
+}
+
+type TSoftware struct {
+	ISoftware
+}
+
+type Software struct {
 	name string
 }
-func NewPhoneB(name string) *PhoneB { return &PhoneB{name: name} }
-func (p *PhoneB) SetSoft(software Software) { p.soft = software }
-func (p *PhoneB) Run() string { return "PhoneB " + p.name + " run: " + p.soft.Run() }
+
+type SoftwareA struct {
+	Software
+}
+
+func (s *Software) Run() {
+	if s == nil {
+		return
+	}
+	fmt.Println(s.name)
+}
+
+type SoftwareB struct {
+	Software
+}
+
+/*func (s *SoftwareB) Run() {
+	if s == nil {
+		return
+	}
+	fmt.Println(s.name)
+}*/
 ```
 
 ```go
-package bridge
-import "testing"
+package test
+
+import (
+	"fmt"
+	"testing"
+)
+
 func TestBridge(t *testing.T) {
-	sa := &SoftwareA{}
+	sa := SoftwareA{Software{"a"}}
+	sb := SoftwareB{Software{"b"}}
+
 	pa := NewPhoneA("pa")
-	pa.SetSoft(sa)
-	if res := pa.Run(); res != "PhoneA pa run: run soft a" {
-		t.Errorf("Unexpected result: %s", res)
-	}
+	pb := NewPhoneB("pb")
+
+	pa.setSoft(&sa)
+	pa.Run()
+
+	pb.setSoft(&sb)
+	pb.Run()
+
+	fmt.Println()
+	p := TSoftware{&sb}
+	p.Run()
 }
 ```
 
-
-## chain_of_responsibility
-
-```go
-package chain_of_responsibility
-import "strconv"
-
-type Request struct {
-	RequestType string
-	Number      int
-}
-
-type Manager interface {
-	SetSuperior(manager Manager)
-	RequestApplications(request Request) string
-}
-
-type CommonManager struct {
-	name     string
-	superior Manager
-}
-func NewCommonManager(name string) *CommonManager { return &CommonManager{name: name} }
-func (c *CommonManager) SetSuperior(manager Manager) { c.superior = manager }
-func (c *CommonManager) RequestApplications(request Request) string {
-	if request.RequestType == "请假" && request.Number <= 2 {
-		return c.name + ":" + request.RequestType + " 数量" + strconv.Itoa(request.Number) + " 被批准"
-	} else if c.superior != nil {
-		return c.superior.RequestApplications(request)
-	}
-	return ""
-}
-
-type Majordomo struct {
-	name     string
-	superior Manager
-}
-func NewMajordomo(name string) *Majordomo { return &Majordomo{name: name} }
-func (m *Majordomo) SetSuperior(manager Manager) { m.superior = manager }
-func (m *Majordomo) RequestApplications(request Request) string {
-	if request.RequestType == "请假" && request.Number <= 5 {
-		return m.name + ":" + request.RequestType + " 数量" + strconv.Itoa(request.Number) + " 被批准"
-	} else if m.superior != nil {
-		return m.superior.RequestApplications(request)
-	}
-	return ""
-}
-
-type GeneralManager struct {
-	name     string
-	superior Manager
-}
-func NewGeneralManager(name string) *GeneralManager { return &GeneralManager{name: name} }
-func (g *GeneralManager) SetSuperior(manager Manager) { g.superior = manager }
-func (g *GeneralManager) RequestApplications(request Request) string {
-	if request.RequestType == "请假" {
-		return g.name + ":" + request.RequestType + " 数量" + strconv.Itoa(request.Number) + " 被批准"
-	} else if request.RequestType == "加薪" && request.Number <= 500 {
-		return g.name + ":" + request.RequestType + " 数量" + strconv.Itoa(request.Number) + " 被批准"
-	} else if request.RequestType == "加薪" && request.Number > 500 {
-		return g.name + ":" + request.RequestType + " 数量" + strconv.Itoa(request.Number) + " 再说吧"
-	}
-	return ""
-}
-```
+## memento 备忘录模式
 
 ```go
-package chain_of_responsibility
-import "testing"
-func TestChain(t *testing.T) {
-	jinli := NewCommonManager("jinli")
-	zongjian := NewMajordomo("zongjian")
-	zongjingli := NewGeneralManager("zongjingli")
-	jinli.SetSuperior(zongjian)
-	zongjian.SetSuperior(zongjingli)
+/*
+ Memento 备忘录模式：
+        在不破坏封装性的前提下，捕获一个对象的内部状态，并在该对象之外保存这个状态。
+        这样以后就可以将该对象恢复到原先保存的状态
+ 个人想法：将某个类的状态（某些状态，具体有该类决定）保存在另外一个类中
+         （代码级别：提供一个函数能够将状态保存起来，返回出去），保存好状态的类对象是管理类的成员，
+		 原来的类需要恢复时，再从管理类中获取原来的状态
+*/
 
-	req := Request{RequestType: "请假", Number: 1}
-	res := jinli.RequestApplications(req)
-	if res != "jinli:请假 数量1 被批准" { t.Errorf("Unexpected res: %s", res) }
-	
-	req2 := Request{RequestType: "加薪", Number: 1000}
-	res2 := jinli.RequestApplications(req2)
-	if res2 != "zongjingli:加薪 数量1000 再说吧" { t.Errorf("Unexpected res: %s", res2) }
-}
-```
+package test
 
+import (
+	"fmt"
+)
 
-## command
-
-```go
-package command
-
-type Command interface {
-	Execute() string
+type GameRole struct {
+	vit int
+	atk int
+	def int
 }
 
-type Receiver struct{}
-func (r *Receiver) Action() string { return "执行请求！" }
-
-type ConcreteCommand struct {
-	receiver *Receiver
-}
-func NewConcreteCommand(receiver *Receiver) *ConcreteCommand {
-	return &ConcreteCommand{receiver: receiver}
-}
-func (c *ConcreteCommand) Execute() string {
-	return c.receiver.Action()
+func (g *GameRole) StateDisplay() {
+	if g == nil {
+		return
+	}
+	fmt.Println("角色当前状态：")
+	fmt.Println("体力：", g.vit)
+	fmt.Println("攻击：", g.atk)
+	fmt.Println("防御：", g.def)
+	fmt.Println("============")
 }
 
-type Invoker struct {
-	command Command
+func (g *GameRole) GetInitState() {
+	if g == nil {
+		return
+	}
+	g.vit = 100
+	g.atk = 100
+	g.def = 100
 }
-func (i *Invoker) SetCommand(command Command) { i.command = command }
-func (i *Invoker) ExecuteCommand() string {
-	if i.command != nil { return i.command.Execute() }
-	return ""
+
+func (g *GameRole) Fight() {
+	if g == nil {
+		return
+	}
+	g.vit = 0
+	g.atk = 0
+	g.def = 0
+}
+func (g *GameRole) SaveState() RoleStateMemento {
+	if g == nil {
+		return RoleStateMemento{}
+	}
+	return RoleStateMemento{*g}
+}
+
+func (g *GameRole) RecoveryState(r RoleStateMemento) {
+	if g == nil {
+		return
+	}
+	g.vit = r.vit
+	g.atk = r.atk
+	g.def = r.def
+}
+
+type RoleStateMemento struct {
+	GameRole
+}
+
+type RoleStateCaretaker struct {
+	memento RoleStateMemento
 }
 ```
 
 ```go
-package command
-import "testing"
-func TestCommand(t *testing.T) {
-	receiver := &Receiver{}
-	cmd := NewConcreteCommand(receiver)
-	invoker := &Invoker{}
-	invoker.SetCommand(cmd)
-	if res := invoker.ExecuteCommand(); res != "执行请求！" {
-		t.Errorf("Unexpected result: %s", res)
-	}
-}
-```
+package test
 
+import (
+	"testing"
+)
 
-## composite
-
-```go
-package composite
-import "strings"
-
-type Component interface {
-	Add(c Component)
-	Remove(c Component)
-	Display(depth int) string
-}
-
-type Leaf struct {
-	name string
-}
-func NewLeaf(name string) *Leaf { return &Leaf{name: name} }
-func (l *Leaf) Add(c Component) {}
-func (l *Leaf) Remove(c Component) {}
-func (l *Leaf) Display(depth int) string {
-	return strings.Repeat("-", depth) + l.name
-}
-
-type Composite struct {
-	name     string
-	children []Component
-}
-func NewComposite(name string) *Composite { return &Composite{name: name, children: make([]Component, 0)} }
-func (c *Composite) Add(comp Component) { c.children = append(c.children, comp) }
-func (c *Composite) Remove(comp Component) {}
-func (c *Composite) Display(depth int) string {
-	res := strings.Repeat("-", depth) + c.name
-	for _, child := range c.children {
-		res += "\n" + child.Display(depth+2)
-	}
-	return res
-}
-```
-
-```go
-package composite
-import "testing"
-func TestComposite(t *testing.T) {
-	root := NewComposite("root")
-	root.Add(NewLeaf("Leaf A"))
-	comp := NewComposite("Composite X")
-	comp.Add(NewLeaf("Leaf XA"))
-	root.Add(comp)
-
-	res := root.Display(1)
-	expected := "-root\n---Leaf A\n---Composite X\n-----Leaf XA"
-	if res != expected {
-		t.Errorf("Expected:\n%s\nGot:\n%s", expected, res)
-	}
-}
-```
-
-
-## decorator
-
-```go
-package decorator
-
-type Component interface {
-	Operation() string
-}
-
-type ConcreteComponent struct{}
-func (c *ConcreteComponent) Operation() string { return "具体对象的操作" }
-
-type Decorator struct {
-	component Component
-}
-func (d *Decorator) SetComponent(c Component) { d.component = c }
-func (d *Decorator) Operation() string {
-	if d.component != nil {
-		return d.component.Operation()
-	}
-	return ""
-}
-
-type ConcreteDecoratorA struct {
-	Decorator
-	addedState string
-}
-func (c *ConcreteDecoratorA) Operation() string {
-	c.addedState = "New State"
-	return c.Decorator.Operation() + " 具体装饰对象A的操作"
-}
-
-type ConcreteDecoratorB struct {
-	Decorator
-}
-func (c *ConcreteDecoratorB) Operation() string {
-	return c.Decorator.Operation() + " 具体装饰对象B的操作"
-}
-```
-
-```go
-package decorator
-import "testing"
-func TestDecorator(t *testing.T) {
-	c := &ConcreteComponent{}
-	d1 := &ConcreteDecoratorA{}
-	d2 := &ConcreteDecoratorB{}
-
-	d1.SetComponent(c)
-	d2.SetComponent(d1)
-
-	res := d2.Operation()
-	expected := "具体对象的操作 具体装饰对象A的操作 具体装饰对象B的操作"
-	if res != expected {
-		t.Errorf("Expected: %s, Got: %s", expected, res)
-	}
-}
-```
-
-
-## flyweight
-
-```go
-package flyweight
-import "strconv"
-
-type Flyweight interface {
-	Operation(extrinsicstate int) string
-}
-
-type ConcreteFlyweight struct{}
-func (c *ConcreteFlyweight) Operation(extrinsicstate int) string {
-	return "具体Flyweight:" + strconv.Itoa(extrinsicstate)
-}
-
-type UnsharedConcreteFlyweight struct{}
-func (u *UnsharedConcreteFlyweight) Operation(extrinsicstate int) string {
-	return "不共享的具体Flyweight:" + strconv.Itoa(extrinsicstate)
-}
-
-type FlyweightFactory struct {
-	flyweights map[string]Flyweight
-}
-func NewFlyweightFactory() *FlyweightFactory {
-	f := &FlyweightFactory{flyweights: make(map[string]Flyweight)}
-	f.flyweights["X"] = &ConcreteFlyweight{}
-	f.flyweights["Y"] = &ConcreteFlyweight{}
-	f.flyweights["Z"] = &ConcreteFlyweight{}
-	return f
-}
-func (f *FlyweightFactory) GetFlyweight(key string) Flyweight {
-	return f.flyweights[key]
-}
-```
-
-```go
-package flyweight
-import "testing"
-func TestFlyweight(t *testing.T) {
-	extrinsicstate := 22
-	f := NewFlyweightFactory()
-	fx := f.GetFlyweight("X")
-	res := fx.Operation(extrinsicstate)
-	if res != "具体Flyweight:22" {
-		t.Errorf("Unexpected result: %s", res)
-	}
-}
-```
-
-
-## interpreter
-
-```go
-package interpreter
-
-type Context struct {
-	Input  string
-	Output string
-}
-
-type AbstractExpression interface {
-	Interpret(context *Context)
-}
-
-type TerminalExpression struct{}
-func (t *TerminalExpression) Interpret(context *Context) {
-	context.Output += "终端解释器"
-}
-
-type NonterminalExpression struct{}
-func (n *NonterminalExpression) Interpret(context *Context) {
-	context.Output += "非终端解释器"
-}
-```
-
-```go
-package interpreter
-import "testing"
-func TestInterpreter(t *testing.T) {
-	context := &Context{}
-	list := []AbstractExpression{
-		&TerminalExpression{},
-		&NonterminalExpression{},
-		&TerminalExpression{},
-	}
-	for _, exp := range list {
-		exp.Interpret(context)
-	}
-	if context.Output != "终端解释器非终端解释器终端解释器" {
-		t.Errorf("Unexpected output: %s", context.Output)
-	}
-}
-```
-
-
-## iterator
-
-```go
-package iterator
-
-type Iterator interface {
-	First() interface{}
-	Next() interface{}
-	IsDone() bool
-	CurrentItem() interface{}
-}
-
-type Aggregate interface {
-	CreateIterator() Iterator
-}
-
-type ConcreteAggregate struct {
-	items []interface{}
-}
-func NewConcreteAggregate() *ConcreteAggregate {
-	return &ConcreteAggregate{items: make([]interface{}, 0)}
-}
-func (c *ConcreteAggregate) CreateIterator() Iterator {
-	return NewConcreteIterator(c)
-}
-func (c *ConcreteAggregate) Count() int { return len(c.items) }
-func (c *ConcreteAggregate) Get(index int) interface{} { return c.items[index] }
-func (c *ConcreteAggregate) Set(index int, value interface{}) {
-	if index >= len(c.items) {
-		c.items = append(c.items, value)
-	} else {
-		c.items[index] = value
-	}
-}
-
-type ConcreteIterator struct {
-	aggregate *ConcreteAggregate
-	current   int
-}
-func NewConcreteIterator(aggregate *ConcreteAggregate) *ConcreteIterator {
-	return &ConcreteIterator{aggregate: aggregate, current: 0}
-}
-func (c *ConcreteIterator) First() interface{} { return c.aggregate.Get(0) }
-func (c *ConcreteIterator) Next() interface{} {
-	c.current++
-	if c.current < c.aggregate.Count() {
-		return c.aggregate.Get(c.current)
-	}
-	return nil
-}
-func (c *ConcreteIterator) IsDone() bool { return c.current >= c.aggregate.Count() }
-func (c *ConcreteIterator) CurrentItem() interface{} { return c.aggregate.Get(c.current) }
-```
-
-```go
-package iterator
-import "testing"
-func TestIterator(t *testing.T) {
-	a := NewConcreteAggregate()
-	a.Set(0, "A")
-	a.Set(1, "B")
-	a.Set(2, "C")
-
-	i := a.CreateIterator()
-	res := ""
-	for !i.IsDone() {
-		res += i.CurrentItem().(string)
-		i.Next()
-	}
-	if res != "ABC" {
-		t.Errorf("Unexpected result: %s", res)
-	}
-}
-```
-
-
-## mediator
-
-```go
-package mediator
-
-type Mediator interface {
-	Send(message string, colleague Colleague) string
-}
-
-type Colleague interface {
-	Send(message string) string
-	Notify(message string) string
-}
-
-type ConcreteMediator struct {
-	Colleague1 Colleague
-	Colleague2 Colleague
-}
-func (m *ConcreteMediator) Send(message string, colleague Colleague) string {
-	if colleague == m.Colleague1 {
-		return m.Colleague2.Notify(message)
-	}
-	return m.Colleague1.Notify(message)
-}
-
-type ConcreteColleague1 struct {
-	mediator Mediator
-}
-func NewConcreteColleague1(mediator Mediator) *ConcreteColleague1 { return &ConcreteColleague1{mediator: mediator} }
-func (c *ConcreteColleague1) Send(message string) string { return c.mediator.Send(message, c) }
-func (c *ConcreteColleague1) Notify(message string) string { return "同事1得到信息:" + message }
-
-type ConcreteColleague2 struct {
-	mediator Mediator
-}
-func NewConcreteColleague2(mediator Mediator) *ConcreteColleague2 { return &ConcreteColleague2{mediator: mediator} }
-func (c *ConcreteColleague2) Send(message string) string { return c.mediator.Send(message, c) }
-func (c *ConcreteColleague2) Notify(message string) string { return "同事2得到信息:" + message }
-```
-
-```go
-package mediator
-import "testing"
-func TestMediator(t *testing.T) {
-	m := &ConcreteMediator{}
-	c1 := NewConcreteColleague1(m)
-	c2 := NewConcreteColleague2(m)
-	m.Colleague1 = c1
-	m.Colleague2 = c2
-
-	res1 := c1.Send("吃饭了吗？")
-	if res1 != "同事2得到信息:吃饭了吗？" { t.Errorf("Error: %s", res1) }
-	res2 := c2.Send("没有呢，你打算请客？")
-	if res2 != "同事1得到信息:没有呢，你打算请客？" { t.Errorf("Error: %s", res2) }
-}
-```
-
-
-## memento
-
-```go
-package memento
-
-type Memento struct {
-	state string
-}
-func NewMemento(state string) *Memento { return &Memento{state: state} }
-func (m *Memento) State() string { return m.state }
-
-type Originator struct {
-	state string
-}
-func (o *Originator) State() string { return o.state }
-func (o *Originator) SetState(state string) { o.state = state }
-func (o *Originator) CreateMemento() *Memento { return NewMemento(o.state) }
-func (o *Originator) SetMemento(memento *Memento) { o.state = memento.State() }
-
-type Caretaker struct {
-	memento *Memento
-}
-func (c *Caretaker) Memento() *Memento { return c.memento }
-func (c *Caretaker) SetMemento(memento *Memento) { c.memento = memento }
-```
-
-```go
-package memento
-import "testing"
 func TestMemento(t *testing.T) {
-	o := &Originator{}
-	o.SetState("On")
-	c := &Caretaker{}
-	c.SetMemento(o.CreateMemento())
+	gr := GameRole{}
+	gr.GetInitState()
+	gr.StateDisplay()
 
-	o.SetState("Off")
-	if o.State() != "Off" { t.Errorf("State should be Off") }
-
-	o.SetMemento(c.Memento())
-	if o.State() != "On" { t.Errorf("State should be On") }
+	caretaker := RoleStateCaretaker{}
+	caretaker.memento = gr.SaveState()
+	gr.Fight()
+	gr.StateDisplay()
+	gr.RecoveryState(caretaker.memento)
+	gr.StateDisplay()
 }
 ```
 
-
-## state
+## state 状态模式
 
 ```go
-package state
-import "strconv"
+/*
+ State 状态模式：
+        当一个对象的内在状态改变时，允许改变其行为，这个对象看起来像是改变了其类
+ 个人想法：UML图很相似，策略模式是用在对多个做同样事情（统一接口）的类对象的选择上，
+         而状态模式是：将对某个事情的处理过程抽象成接口和实现类的形式，
+		由context保存一份state，在state实现类处理事情时，修改状态传递给context，
+		由context继续传递到下一个状态处理中，
+*/
+package test
 
+import (
+	"fmt"
+)
+
+// 工作类 --context
 type Work struct {
 	hour  int
 	state State
 }
-func NewWork() *Work { return &Work{state: &MoringState{}} }
-func (w *Work) Hour() int { return w.hour }
-func (w *Work) SetHour(h int) { w.hour = h }
-func (w *Work) SetState(s State) { w.state = s }
-func (w *Work) WriteProgram() string { return w.state.WriteProgram(w) }
+
+func (w *Work) Hour() int {
+	if w == nil {
+		return -1
+	}
+	return w.hour
+}
+
+func (w *Work) State() State {
+	if w == nil {
+		return nil
+	}
+	return w.state
+}
+
+func (w *Work) SetHour(h int) {
+	if w == nil {
+		return
+	}
+	w.hour = h
+}
+
+func (w *Work) SetState(s State) {
+	if w == nil {
+		return
+	}
+	w.state = s
+}
+
+func (w *Work) writeProgram() {
+	if w == nil {
+		return
+	}
+	w.state.writeProgram(w)
+}
+
+func NewWork() *Work {
+	state := new(moringState)
+	return &Work{state: state}
+}
 
 type State interface {
-	WriteProgram(w *Work) string
+	writeProgram(w *Work)
 }
 
-type MoringState struct{}
-func (m *MoringState) WriteProgram(w *Work) string {
-	if w.Hour() < 12 { return "上午工作，精神百倍:" + strconv.Itoa(w.Hour()) }
-	w.SetState(&NoonState{})
-	return w.WriteProgram()
+// 上午时分状态类
+type moringState struct {
 }
 
-type NoonState struct{}
-func (n *NoonState) WriteProgram(w *Work) string {
-	if w.Hour() < 13 { return "饿了，午饭；犯困，午休:" + strconv.Itoa(w.Hour()) }
-	w.SetState(&AfternoonState{})
-	return w.WriteProgram()
+func (m *moringState) writeProgram(w *Work) {
+	if w.Hour() < 12 {
+		fmt.Println("现在是上午时分", w.Hour())
+	} else {
+		w.SetState(new(NoonState))
+		w.writeProgram()
+	}
 }
 
-type AfternoonState struct{}
-func (a *AfternoonState) WriteProgram(w *Work) string {
-	if w.Hour() < 17 { return "下午状态还不错，继续努力:" + strconv.Itoa(w.Hour()) }
-	w.SetState(&EveningState{})
-	return w.WriteProgram()
+// 中午时分状态类
+type NoonState struct {
 }
 
-type EveningState struct{}
-func (e *EveningState) WriteProgram(w *Work) string {
-	if w.Hour() < 21 { return "加班哦，疲累之极:" + strconv.Itoa(w.Hour()) }
-	return "不行了，睡着了:" + strconv.Itoa(w.Hour())
+func (m *NoonState) writeProgram(w *Work) {
+	if w.Hour() < 13 {
+		fmt.Println("现在是中午时分", w.Hour())
+	} else {
+		w.SetState(new(AfternoonState))
+		w.writeProgram()
+	}
+}
+
+// 下午时分状态类
+type AfternoonState struct {
+}
+
+func (m *AfternoonState) writeProgram(w *Work) {
+	if w.Hour() < 17 {
+		fmt.Println("现在是下午时分", w.Hour())
+	} else {
+		w.SetState(new(EveningState))
+		w.writeProgram()
+	}
+}
+
+// 晚上时分状态类
+type EveningState struct {
+}
+
+func (m *EveningState) writeProgram(w *Work) {
+	if w.Hour() < 21 {
+		fmt.Println("现在是晚上时分", w.Hour())
+	} else {
+		fmt.Println("现在开始睡觉", w.Hour())
+	}
 }
 ```
 
 ```go
-package state
-import "testing"
+package test
+
+import (
+	"fmt"
+	"testing"
+)
+
 func TestState(t *testing.T) {
 	w := NewWork()
-	w.SetHour(9)
-	if res := w.WriteProgram(); res != "上午工作，精神百倍:9" { t.Errorf("Error: %s", res) }
-	
-	w.SetHour(13)
-	if res := w.WriteProgram(); res != "下午状态还不错，继续努力:13" { t.Errorf("Error: %s", res) }
-	
-	w.SetHour(22)
-	if res := w.WriteProgram(); res != "不行了，睡着了:22" { t.Errorf("Error: %s", res) }
+
+	fmt.Println("========================")
+	w.writeProgram()
+	fmt.Println("========================")
+	w.SetHour(12)
+	w.writeProgram()
+	fmt.Println("========================")
+	w.SetHour(14)
+	w.writeProgram()
+	fmt.Println("========================")
+	w.SetHour(21)
+	w.writeProgram()
 }
 ```
 
-
-## strategy
+## composite 组合模式
 
 ```go
-package strategy
+/*
+  Composite 组合模式：
+        将对象组合成树形结构，以表示“部分-整体”的层次结构。
+		组合模式使得用户对单个对象和组合对象的使用具有一致性
+ 个人想法：
+ 日期：   20170308
+*/
 
-type Strategy interface {
-	AlgorithmInterface() string
+package test
+
+import (
+	"fmt"
+	"strings"
+)
+
+// 公司管理接口
+type Company interface {
+	add(Company)
+	remove(Company)
+	display(int)
+	lineOfDuty()
 }
 
-type ConcreteStrategyA struct{}
-func (c *ConcreteStrategyA) AlgorithmInterface() string { return "算法A实现" }
+type RealCompany struct {
+	name string
+}
 
-type ConcreteStrategyB struct{}
-func (c *ConcreteStrategyB) AlgorithmInterface() string { return "算法B实现" }
+// 具体公司
+type ConcreateCompany struct {
+	RealCompany
+	list []Company
+}
 
-type ConcreteStrategyC struct{}
-func (c *ConcreteStrategyC) AlgorithmInterface() string { return "算法C实现" }
+func NewConcreateCompany(name string) *ConcreateCompany {
+	return &ConcreateCompany{RealCompany{name}, []Company{}}
+}
+
+func (c *ConcreateCompany) add(newc Company) {
+	if c == nil {
+		return
+	}
+	c.list = append(c.list, newc)
+}
+
+func (c *ConcreateCompany) remove(delc Company) {
+	if c == nil {
+		return
+	}
+	for i, val := range c.list {
+		if val == delc {
+			c.list = append(c.list[:i], c.list[i+1:]...)
+			return
+		}
+	}
+	return
+}
+
+func (c *ConcreateCompany) display(depth int) {
+	if c == nil {
+		return
+	}
+	fmt.Println(strings.Repeat("-", depth), " ", c.name)
+	for _, val := range c.list {
+		val.display(depth + 2)
+	}
+}
+
+func (c *ConcreateCompany) lineOfDuty() {
+	if c == nil {
+		return
+	}
+
+	for _, val := range c.list {
+		val.lineOfDuty()
+	}
+}
+
+// 人力资源部门
+type HRDepartment struct {
+	RealCompany
+}
+
+func NewHRDepartment(name string) *HRDepartment {
+	return &HRDepartment{RealCompany{name}}
+}
+
+func (h *HRDepartment) add(c Company)    {}
+func (h *HRDepartment) remove(c Company) {}
+
+func (h *HRDepartment) display(depth int) {
+	if h == nil {
+		return
+	}
+	fmt.Println(strings.Repeat("-", depth), " ", h.name)
+}
+
+func (h *HRDepartment) lineOfDuty() {
+	if h == nil {
+		return
+	}
+	fmt.Println(h.name, "员工招聘培训管理")
+}
+
+// 财务部门
+type FinanceDepartment struct {
+	RealCompany
+}
+
+func NewFinanceDepartment(name string) *FinanceDepartment {
+	return &FinanceDepartment{RealCompany{name}}
+}
+
+func (h *FinanceDepartment) add(c Company)    {}
+func (h *FinanceDepartment) remove(c Company) {}
+
+func (h *FinanceDepartment) display(depth int) {
+	if h == nil {
+		return
+	}
+	fmt.Println(strings.Repeat("-", depth), " ", h.name)
+}
+
+func (h *FinanceDepartment) lineOfDuty() {
+	if h == nil {
+		return
+	}
+	fmt.Println(h.name, "公司财务收支管理")
+}
+```
+
+```go
+package test
+
+import (
+	"fmt"
+	"testing"
+)
+
+func TestComponent(t *testing.T) {
+	root := NewConcreateCompany("北京总公司")
+	root.add(NewHRDepartment("总公司人力资源部"))
+	root.add(NewFinanceDepartment("总公司财务部"))
+
+	compA := NewConcreateCompany("上海华东分公司")
+	compA.add(NewHRDepartment("上海华东分公司人力资源部"))
+	compA.add(NewFinanceDepartment("上海华东分公司财务部"))
+	root.add(compA)
+
+	compB := NewConcreateCompany("南京办事处")
+	compB.add(NewHRDepartment("南京办事处人力资源部"))
+	compB.add(NewFinanceDepartment("南京办事处财务部"))
+	compA.add(compB)
+
+	compC := NewConcreateCompany("杭州办事处")
+	compC.add(NewHRDepartment("杭州办事处人力资源部"))
+	compC.add(NewFinanceDepartment("杭州办事处财务部"))
+	compA.add(compC)
+
+	fmt.Println("结构体：")
+	root.display(1)
+
+	fmt.Println("职责：")
+	root.lineOfDuty()
+}
+```
+
+## iterator 迭代器模式
+
+```go
+/*
+  Iterator 迭代器模式：
+        提供一种方法顺序访问一个聚合对象中的各个元素，而又不暴露该对象的内部表示
+ 个人想法：
+ 日期：   20170310
+*/
+package test
+
+//"fmt"
+
+type Book struct {
+	name string
+}
+
+type Iterator interface {
+	first() interface{}
+	next() interface{}
+}
+
+type BookGroup struct {
+	books []Book
+}
+
+func (b *BookGroup) add(newb Book) {
+	if b == nil {
+		return
+	}
+	b.books = append(b.books, newb)
+}
+
+func (b *BookGroup) createIterator() *BookIterator {
+	if b == nil {
+		return nil
+	}
+	return &BookIterator{b, 0}
+}
+
+type BookIterator struct {
+	g     *BookGroup
+	index int
+}
+
+func (b *BookIterator) first() interface{} {
+	if b == nil {
+		return nil
+	}
+	if len(b.g.books) > 0 {
+		b.index = 0
+		return b.g.books[b.index]
+	}
+	return nil
+}
+
+func (b *BookIterator) next() interface{} {
+	if b == nil {
+		return nil
+	}
+	if len(b.g.books) > b.index+1 {
+		b.index++
+		return b.g.books[b.index]
+	}
+	return nil
+}
+```
+
+```go
+package test
+
+import (
+	"fmt"
+	"testing"
+)
+
+func TestIterator(t *testing.T) {
+	bg := BookGroup{}
+	nb := Book{"a"}
+	bg.add(nb)
+	nbb := Book{"b"}
+	bg.add(nbb)
+
+	it := bg.createIterator()
+
+	for b := it.first(); b != nil; b = it.next() {
+		fmt.Println(b)
+	}
+}
+```
+
+## visitor 访问者模式
+
+```go
+/*
+ Visitor 访问者模式：
+        表示一个作用于某对象结构中的各元素的操作，
+		它使你可以在不改变各元素的类的前提下定义作用于这些元素的新操作
+ 个人想法：
+*/
+
+package test
+
+import (
+	"fmt"
+)
+
+// 访问接口
+type IVisitor interface {
+	VisitConcreteElementA(ConcreteElementA)
+	VisitConcreteElementB(ConcreteElementB)
+}
+
+// 具体访问者A
+type ConcreteVisitorA struct {
+	name string
+}
+
+func (c *ConcreteVisitorA) VisitConcreteElementA(ce ConcreteElementA) {
+	if c == nil {
+		return
+	}
+	fmt.Println(ce.name, c.name)
+	ce.OperatorA()
+}
+
+func (c *ConcreteVisitorA) VisitConcreteElementB(ce ConcreteElementB) {
+	if c == nil {
+		return
+	}
+	fmt.Println(ce.name, c.name)
+	ce.OperatorB()
+}
+
+// 具体访问者B
+type ConcreteVisitorB struct {
+	name string
+}
+
+func (c *ConcreteVisitorB) VisitConcreteElementA(ce ConcreteElementA) {
+	if c == nil {
+		return
+	}
+	fmt.Println(ce.name, c.name)
+	ce.OperatorA()
+}
+
+func (c *ConcreteVisitorB) VisitConcreteElementB(ce ConcreteElementB) {
+	if c == nil {
+		return
+	}
+	fmt.Println(ce.name, c.name)
+	ce.OperatorB()
+}
+
+// 元素接口
+type IElement interface {
+	Accept(IVisitor)
+}
+
+// 具体元素A
+type ConcreteElementA struct {
+	name string
+}
+
+func (c *ConcreteElementA) Accept(visitor IVisitor) {
+	if c == nil {
+		return
+	}
+	visitor.VisitConcreteElementA(*c)
+}
+func (c *ConcreteElementA) OperatorA() {
+	if c == nil {
+		return
+	}
+	fmt.Println("OperatorA")
+}
+
+// 具体元素B
+type ConcreteElementB struct {
+	name string
+}
+
+func (c *ConcreteElementB) Accept(visitor IVisitor) {
+	if c == nil {
+		return
+	}
+	visitor.VisitConcreteElementB(*c)
+}
+func (c *ConcreteElementB) OperatorB() {
+	if c == nil {
+		return
+	}
+	fmt.Println("OperatorB")
+}
+
+// 维护元素集合
+type ObjectStructure struct {
+	list []IElement
+}
+
+func (o *ObjectStructure) Attach(e IElement) {
+	if o == nil || e == nil {
+		return
+	}
+	o.list = append(o.list, e)
+}
+
+func (o *ObjectStructure) Detach(e IElement) {
+	if o == nil || e == nil {
+		return
+	}
+	for i, val := range o.list {
+		if val == e {
+			o.list = append(o.list[:i], o.list[i+1:]...)
+			break
+		}
+	}
+}
+
+func (o *ObjectStructure) Accept(v IVisitor) {
+	if o == nil {
+		return
+	}
+	for _, val := range o.list {
+		val.Accept(v)
+	}
+}
+```
+
+```go
+package test
+
+import (
+	"testing"
+)
+
+func TestVisitor(t *testing.T) {
+	object := ObjectStructure{}
+	object.Attach(&ConcreteElementA{"A"})
+	object.Attach(&ConcreteElementB{"B"})
+
+	cva := ConcreteVisitorA{"vA"}
+	cvb := ConcreteVisitorB{"vB"}
+
+	object.Accept(&cva)
+	object.Accept(&cvb)
+}
+```
+
+## command 命令模式
+
+```go
+/*
+ Command 命令模式：
+    将一个请求封装为一个对象，
+    从而使你可用不同的请求对客户进行参数化；
+    对请求排队或者记录请求日志，以及支持可撤销的操作
+
+ 个人想法：Invoker维护请求队列（Command接口队列），通过一些函数可以添加、修改、执行请求队列，
+         在每一种ConcreteCommand中有对该命令的执行体（Receiver），最终响应请求队列的命令
+ 日期：   20170310
+*/
+
+package test
+
+import (
+	"fmt"
+)
+
+// 命令接口 -- 可以保存在请求队形中，方便请求队形处理命令，具体对命令的执行体在实现这个接口的类型结构体中保存着
+type Command interface {
+	Run()
+}
+
+// 请求队形，保存命令列表，在ExecuteCommand函数中遍历执行命令
+type Invoker struct {
+	comlist []Command
+}
+
+// 添加命令
+func (i *Invoker) AddCommand(c Command) {
+	if i == nil {
+		return
+	}
+	i.comlist = append(i.comlist, c)
+}
+
+// 执行命令
+func (i *Invoker) ExecuteCommand() {
+	if i == nil {
+		return
+	}
+	for _, val := range i.comlist {
+		val.Run()
+	}
+}
+
+func NewInvoker() *Invoker {
+	return &Invoker{[]Command{}}
+}
+
+// 具体命令,实现Command接口，保存一个对该命令如何处理的执行体
+type ConcreteCommandA struct {
+	receiver ReceiverA
+}
+
+func (c *ConcreteCommandA) SetReceiver(r ReceiverA) {
+	if c == nil {
+		return
+	}
+	c.receiver = r
+}
+
+// 具体命令的执行体
+func (c *ConcreteCommandA) Run() {
+	if c == nil {
+		return
+	}
+	c.receiver.Execute()
+}
+
+func NewConcreteCommandA() *ConcreteCommandA {
+	return &ConcreteCommandA{}
+}
+
+// 针对ConcreteCommand，如何处理该命令
+type ReceiverA struct {
+}
+
+func (r *ReceiverA) Execute() {
+	if r == nil {
+		return
+	}
+	fmt.Println("针对ConcreteCommandA，如何处理该命令")
+}
+
+func NewReceiverA() *ReceiverA {
+	return &ReceiverA{}
+}
+
+//////////////////////////////////////////////////////////
+
+// 具体命令,实现Command接口，保存一个对该命令如何处理的执行体
+type ConcreteCommandB struct {
+	receiver ReceiverB
+}
+
+func (c *ConcreteCommandB) SetReceiver(r ReceiverB) {
+	if c == nil {
+		return
+	}
+	c.receiver = r
+}
+
+// 具体命令的执行体
+func (c *ConcreteCommandB) Run() {
+	if c == nil {
+		return
+	}
+	c.receiver.Execute()
+}
+
+func NewConcreteCommandB() *ConcreteCommandB {
+	return &ConcreteCommandB{}
+}
+
+// 针对ConcreteCommandB，如何处理该命令
+type ReceiverB struct {
+}
+
+func (r *ReceiverB) Execute() {
+	if r == nil {
+		return
+	}
+	fmt.Println("针对ConcreteCommandB，如何处理该命令")
+}
+
+func NewReceiverB() *ReceiverB {
+	return &ReceiverB{}
+}
+```
+
+```go
+package test
+
+import (
+	"testing"
+)
+
+func TestCommand(t *testing.T) {
+	invoker := NewInvoker()
+	concomA := NewConcreteCommandA()
+	receA := NewReceiverA()
+
+	concomA.SetReceiver(*receA)
+	invoker.AddCommand(concomA)
+
+	concomB := NewConcreteCommandB()
+	receB := NewReceiverB()
+
+	concomB.SetReceiver(*receB)
+	invoker.AddCommand(concomB)
+
+	invoker.ExecuteCommand()
+}
+```
+
+## flyweight 享元模式
+
+```go
+/*
+ Flyweight 享元模式：
+        运用共享技术有效地支持大量细粒度的对象
+ 个人想法：主要思想是共享，将可以共享的部分放在对象内部，
+         不可以共享的部分放在外边，享元工厂创建几个享元对象就可以了，
+		这样不同的外部状态，可以针对同一个对象，给人感觉是操作多个对象，
+		通过参数的形式对同一个对象的操作，像是对多个对象的操作
+ 日期：   20170311
+*/
+
+package test
+
+import (
+	"fmt"
+)
+
+// 享元对象接口
+type IFlyweight interface {
+	Operation(int) //来自外部的状态
+}
+
+// 共享对象
+type ConcreteFlyweight struct {
+	name string
+}
+
+func (c *ConcreteFlyweight) Operation(outState int) {
+	if c == nil {
+		return
+	}
+	fmt.Println("共享对象响应外部状态", outState)
+}
+
+// 不共享对象
+type UnsharedConcreteFlyweight struct {
+	name string
+}
+
+func (c *UnsharedConcreteFlyweight) Operation(outState int) {
+	if c == nil {
+		return
+	}
+	fmt.Println("不共享对象响应外部状态", outState)
+}
+
+// 享元工厂对象
+type FlyweightFactory struct {
+	flyweights map[string]IFlyweight
+}
+
+func (f *FlyweightFactory) Flyweight(name string) IFlyweight {
+	if f == nil {
+		return nil
+	}
+	if name == "u" {
+		return &UnsharedConcreteFlyweight{"u"}
+	} else if _, ok := f.flyweights[name]; !ok {
+		f.flyweights[name] = &ConcreteFlyweight{name}
+	}
+	return f.flyweights[name]
+}
+
+func NewFlyweightFactory() *FlyweightFactory {
+	ff := FlyweightFactory{make(map[string]IFlyweight)}
+	ff.flyweights["a"] = &ConcreteFlyweight{"a"}
+	ff.flyweights["b"] = &ConcreteFlyweight{"b"}
+	return &ff
+}
+```
+
+```go
+package test
+
+import (
+	"testing"
+)
+
+func TestFlyweight(t *testing.T) {
+	ff := NewFlyweightFactory()
+
+	fya := ff.Flyweight("a")
+	fya.Operation(1)
+
+	fyb := ff.Flyweight("b")
+	fyb.Operation(2)
+
+	fyc := ff.Flyweight("c")
+	fyc.Operation(3)
+
+	fyd := ff.Flyweight("d")
+	fyd.Operation(4)
+
+	fyu := ff.Flyweight("u")
+	fyu.Operation(5)
+}
+```
+
+## mediator 中介者模式
+
+```go
+/*
+ Mediator 中介者模式：
+        用一个中介对象来封装一系列的对象交互。
+        中介这使各对象不需要显式地相互引用，从而使其耦合松散，
+        而且可以独立地改变它们之间的交互。
+ 个人想法：每个对象都有一个中介者对象，发生变化时，通知中介者，由中介者判断通知其他的对象。
+*/
+
+package test
+
+import (
+	"fmt"
+)
+
+// 中介者接口
+type IMediator interface {
+	Send(string, IColleague)
+}
+
+// 实现中介者接口的基本类型
+type Mediator struct {
+}
+
+// 具体的中介者
+type ConcreteMediator struct {
+	Mediator
+	colleagues []IColleague
+}
+
+func (m *ConcreteMediator) AddColleague(c IColleague) {
+	if m == nil {
+		return
+	}
+	m.colleagues = append(m.colleagues, c)
+}
+
+func (m *ConcreteMediator) Send(message string, c IColleague) {
+	if m == nil {
+		return
+	}
+	for _, val := range m.colleagues {
+		if c == val {
+			continue
+		}
+		val.Notify(message)
+	}
+}
+
+func NewConcreteMediator() *ConcreteMediator {
+	return &ConcreteMediator{}
+}
+
+// 合作者接口
+type IColleague interface {
+	Send(string)
+	Notify(string)
+}
+
+// 实现合作者接口的基本类型
+type Colleague struct {
+	mediator IMediator
+}
+
+// 具体合作者对象A
+type ConcreteColleageA struct {
+	Colleague
+}
+
+func (c *ConcreteColleageA) Notify(message string) {
+	if c == nil {
+		return
+	}
+	fmt.Println("ConcreteColleageA get message:", message)
+}
+
+func (c *ConcreteColleageA) Send(message string) {
+	if c == nil {
+		return
+	}
+	c.mediator.Send(message, c)
+
+}
+func NewConcreteColleageA(mediator IMediator) *ConcreteColleageA {
+	return &ConcreteColleageA{Colleague{mediator}}
+}
+
+// 具体合作者对象B
+type ConcreteColleageB struct {
+	Colleague
+}
+
+func (c *ConcreteColleageB) Notify(message string) {
+	if c == nil {
+		return
+	}
+	fmt.Println("ConcreteColleageB get message:", message)
+}
+func (c *ConcreteColleageB) Send(message string) {
+	if c == nil {
+		return
+	}
+	c.mediator.Send(message, c)
+
+}
+func NewConcreteColleageB(mediator IMediator) *ConcreteColleageB {
+	return &ConcreteColleageB{Colleague{mediator}}
+}
+```
+
+```go
+package test
+
+import (
+	"testing"
+)
+
+func TestMediator(t *testing.T) {
+	m := NewConcreteMediator()
+	ca := NewConcreteColleageA(m)
+	cb := NewConcreteColleageB(m)
+
+	m.AddColleague(ca)
+	m.AddColleague(cb)
+
+	ca.Send("ca")
+	cb.Send("cb")
+}
+```
+
+## strategy 策略模式
+
+```go
+/*
+ Strategy 策略模式：
+        它定义了算法家族，分别封装起来，让它们可以相互替换，
+		此模式让算法的变化，不会影响到使用算法的客户。
+ 个人想法：UML图很相似，策略模式是用在对多个做同样事情（统一接口）的类对象的选择上，
+         而状态模式是：将对某个事情的处理过程抽象成接口和实现类的形式，
+		由context保存一份state，在state实现类处理事情时，修改状态传递给context，
+		由context继续传递到下一个状态处理中，
+*/
+package test
+
+import (
+	"errors"
+)
+
+type CashSuper interface {
+	acceptCash(memory float32) float32
+}
+
+type CashNomal struct {
+}
+
+func (this *CashNomal) acceptCash(money float32) float32 {
+	return money
+}
+
+type CashRebate struct {
+	meneyRebate float32
+}
+
+func (this *CashRebate) acceptCash(money float32) float32 {
+	return this.meneyRebate * money
+}
+
+type CashReturn struct {
+	meneyCondition float32
+	meneyReturn    float32
+}
+
+func (this *CashReturn) acceptCash(money float32) float32 {
+	if money >= this.meneyCondition {
+		return money - float32(int(money/this.meneyCondition*this.meneyReturn))
+	} else {
+		return money
+	}
+}
 
 type Context struct {
-	strategy Strategy
+	CashSuper
 }
-func NewContext(strategy Strategy) *Context { return &Context{strategy: strategy} }
-func (c *Context) ContextInterface() string { return c.strategy.AlgorithmInterface() }
+
+func NewCashContext(str string) (cash *Context, err error) {
+	cash = new(Context)
+	switch str {
+	case "正常收费":
+		cash.CashSuper = &CashNomal{}
+	case "满300返100":
+		cash.CashSuper = &CashReturn{300, 100}
+	case "打8折":
+		cash.CashSuper = &CashRebate{0.8}
+	default:
+		err = errors.New("no match")
+	}
+	return cash, err
+}
 ```
 
 ```go
-package strategy
-import "testing"
+package test
+
+import (
+	"fmt"
+	"testing"
+)
+
 func TestStrategy(t *testing.T) {
-	context := NewContext(&ConcreteStrategyA{})
-	if res := context.ContextInterface(); res != "算法A实现" { t.Errorf("Error: %s", res) }
-
-	context = NewContext(&ConcreteStrategyB{})
-	if res := context.ContextInterface(); res != "算法B实现" { t.Errorf("Error: %s", res) }
-}
-```
-
-
-## template_method
-
-```go
-package template_method
-
-type AbstractClass interface {
-	PrimitiveOperation1() string
-	PrimitiveOperation2() string
-}
-
-type Template struct {
-	impl AbstractClass
-}
-func NewTemplate(impl AbstractClass) *Template { return &Template{impl: impl} }
-func (t *Template) TemplateMethod() string {
-	return t.impl.PrimitiveOperation1() + " " + t.impl.PrimitiveOperation2()
-}
-
-type ConcreteClassA struct{}
-func (c *ConcreteClassA) PrimitiveOperation1() string { return "具体类A方法1实现" }
-func (c *ConcreteClassA) PrimitiveOperation2() string { return "具体类A方法2实现" }
-
-type ConcreteClassB struct{}
-func (c *ConcreteClassB) PrimitiveOperation1() string { return "具体类B方法1实现" }
-func (c *ConcreteClassB) PrimitiveOperation2() string { return "具体类B方法2实现" }
-```
-
-```go
-package template_method
-import "testing"
-func TestTemplateMethod(t *testing.T) {
-	c := &ConcreteClassA{}
-	tmpl := NewTemplate(c)
-	if res := tmpl.TemplateMethod(); res != "具体类A方法1实现 具体类A方法2实现" {
-		t.Errorf("Error: %s", res)
+	context, err := NewCashContext("正常费")
+	if err != nil {
+		//t.Error(err)
+	} else {
+		result := context.acceptCash(10000)
+		fmt.Println(result)
 	}
 
-	c2 := &ConcreteClassB{}
-	tmpl2 := NewTemplate(c2)
-	if res := tmpl2.TemplateMethod(); res != "具体类B方法1实现 具体类B方法2实现" {
-		t.Errorf("Error: %s", res)
+	context, err = NewCashContext("满300返100")
+	if err != nil {
+		t.Error(err)
+	} else {
+		result := context.acceptCash(350)
+		fmt.Println(result)
+	}
+
+	context, err = NewCashContext("打8折")
+	if err != nil {
+		t.Error(err)
+	} else {
+		result := context.acceptCash(300)
+		fmt.Println(result)
 	}
 }
 ```
-
-
-## visitor
-
-```go
-package visitor
-
-type Visitor interface {
-	VisitConcreteElementA(a *ConcreteElementA) string
-	VisitConcreteElementB(b *ConcreteElementB) string
-}
-
-type Element interface {
-	Accept(visitor Visitor) string
-}
-
-type ConcreteElementA struct{}
-func (c *ConcreteElementA) Accept(visitor Visitor) string { return visitor.VisitConcreteElementA(c) }
-func (c *ConcreteElementA) OperationA() string { return "具体元素A的操作" }
-
-type ConcreteElementB struct{}
-func (c *ConcreteElementB) Accept(visitor Visitor) string { return visitor.VisitConcreteElementB(c) }
-func (c *ConcreteElementB) OperationB() string { return "具体元素B的操作" }
-
-type ConcreteVisitor1 struct{}
-func (c *ConcreteVisitor1) VisitConcreteElementA(a *ConcreteElementA) string {
-	return "访问者1 访问了 " + a.OperationA()
-}
-func (c *ConcreteVisitor1) VisitConcreteElementB(b *ConcreteElementB) string {
-	return "访问者1 访问了 " + b.OperationB()
-}
-
-type ObjectStructure struct {
-	elements []Element
-}
-func (o *ObjectStructure) Attach(element Element) { o.elements = append(o.elements, element) }
-func (o *ObjectStructure) Accept(visitor Visitor) string {
-	res := ""
-	for _, val := range o.elements {
-		res += val.Accept(visitor) + "\n"
-	}
-	return res
-}
-```
-
-```go
-package visitor
-import "testing"
-func TestVisitor(t *testing.T) {
-	o := &ObjectStructure{}
-	o.Attach(&ConcreteElementA{})
-	o.Attach(&ConcreteElementB{})
-
-	v := &ConcreteVisitor1{}
-	res := o.Accept(v)
-	expected := "访问者1 访问了 具体元素A的操作\n访问者1 访问了 具体元素B的操作\n"
-	if res != expected {
-		t.Errorf("Expected:\n%s\nGot:\n%s", expected, res)
-	}
-}
-```
-
