@@ -1288,7 +1288,7 @@ type DictRequest struct {
 type DictResponse struct {
 	Rc   int `json:"rc"`
 	Wiki struct {
-		KnownInLaguages int `json:"known_in_laguages"`
+		KnownInLanguages int `json:"known_in_languages"`
 		Description     struct {
 			Source string      `json:"source"`
 			Target interface{} `json:"target"`

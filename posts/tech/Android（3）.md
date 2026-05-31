@@ -328,7 +328,7 @@ public class LoginSQLliteActivity extends AppCompatActivity implements RadioGrou
 
 ### 数据库管理器SQLiteDatabase
 
-- SQLiteDatabase是SQLite的数据库管理类，它提供了托干操作数据表的API， 常用的方法有3类：
+- SQLiteDatabase是SQLite的数据库管理类，它提供了若干操作数据表的API， 常用的方法有3类：
 - 管理类，用户数据库层面的操作
   - `openDatabase`：打开指定路径的数据库
   - `isOpen`：判断数据库是否已打开
@@ -338,7 +338,7 @@ public class LoginSQLliteActivity extends AppCompatActivity implements RadioGrou
 
 ### SQLiteDatabase实现保存密码
 
-效果和SharePreference一致，但是是保存在数据库中。
+效果和SharePreference一致，但是保存在数据库中。
 
 #### `LoginDBHelper.java`
 
@@ -389,7 +389,7 @@ public class LoginDBHelper extends SQLiteOpenHelper {
 
     public SQLiteDatabase openWriteLink() {
         if (mWDB == null || !mWDB.isOpen()) {
-            mWDB = mHelper.getReadableDatabase();
+            mWDB = mHelper.getWritableDatabase();
         }
         return mWDB;
     }
@@ -1258,11 +1258,11 @@ Application在Activity之前创建， 并且旋转屏幕时会调用`onConfigura
 
 ### Application全局变量
 
-数和在`Application`中保存的全局变量主要有下面三种数据：
+通常在`Application`中保存的全局变量主要有下面三种数据：
 
 - 会频繁读取的信息，如用户名，手机号等。
 - 不方便由意图传递的数据，例如位图对象，非字符串类型的集合对象等
-- 容易因频繁分配内存二导致内存泄漏的对象，如Handler对象等。
+- 容易因频繁分配内存而导致内存泄漏的对象，如Handler对象等。
 
 通过在MyApplication中定义全局变量`infoMap`, 通过单例类获取app对象，实现在infoMap中， 即内存中存储数据。
 
@@ -1369,7 +1369,7 @@ public class AppWriteActivity extends AppCompatActivity implements View.OnClickL
         et_age.setText(age);
         et_height.setText(height);
         et_weight.setText(weight);
-        ck_isMarried.setChecked(married == "是");
+        ck_isMarried.setChecked("是".equals(married));
     }
 
     //
@@ -1393,7 +1393,7 @@ public class AppWriteActivity extends AppCompatActivity implements View.OnClickL
 
 ### Room框架的导入
 
-Room时谷歌公司推出的数据库处理框架，该框架同样基于SQLite, 但它通过注解技术极大简化了数据库操作，减少了原来相当一部分编码工作量。
+Room是谷歌公司推出的数据库处理框架，该框架同样基于SQLite, 但它通过注解技术极大简化了数据库操作，减少了原来相当一部分编码工作量。
 
 - 在使用Room之前，要先修改模块的build.gradle文件，往dependencies节点添加下面的配置，表示导入指定版本的Room库
 

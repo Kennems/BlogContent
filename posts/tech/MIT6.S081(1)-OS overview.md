@@ -279,7 +279,7 @@ we'll see more detail later in the course
 
 * example: `fork.c`, create a new process
 
-​	the shell creates a new process for each command you type, e.g. for
+	the shell creates a new process for each command you type, e.g. for
 
 ```sh
 $ echo hello

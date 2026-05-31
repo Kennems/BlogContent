@@ -214,7 +214,7 @@ public class Test {
         }
     ```
 
-- 子类复写父类方法时，**访问权限必须大于或者等于父类该方法的权限**（`publc -> protected -> 缺省`）
+- 子类复写父类方法时，**访问权限必须大于或者等于父类该方法的权限**（`public -> protected -> 缺省`）
 
 - 重写的方法返回值类型，必须与被重写方法的**返回值类型一致**，**或者范围更小**
 
@@ -234,7 +234,7 @@ public class Test {
     }
 ```
 
-子列构造器的特点：
+子类构造器的特点：
 
 - 子类的全部构造器，都会**先调用父类的构造器**，再执行自己的构造器。
 - 子类构造器是符合实现调用父类构造器的：
@@ -280,7 +280,7 @@ class Student extends People{
 
 多态是在`继承`/`实现`情况下的一种现象，表现为：对象多态，行为多态。
 
-- 在多态形式下，右边对象是解耦合的，更偏于扩展和维护。
+- 在多态形式下，右边对象是解耦合的，更便于扩展和维护。
 
 ```java
 public class People {
@@ -1189,7 +1189,7 @@ public class TeacherData implements Data<Teacher>{ //指定泛型类型后，重
     }
 ```
 
-`StringBuffer`方法和`StringBuilder`类似，但是是线程安全的，而`StringBuilder`是线程不安全的
+`StringBuffer`方法和`StringBuilder`类似，但是线程安全的，而`StringBuilder`是线程不安全的
 
 ### `StringJoiner`
 
@@ -1393,10 +1393,10 @@ public class Main {
 }
 ```
 
-`JDK`之后新增的时间
+`JDK 8`之后新增的时间
 
 - 设计更合理，功能丰富，使用更方便
-- 都是不可变对象，修改后会返回新的实践对象，不会丢失最开始的时间
+- 都是不可变对象，修改后会返回新的时间对象，不会丢失最开始的时间
 - 线程安全
 - 能精确到毫秒、纳秒
 
@@ -1637,7 +1637,7 @@ public class Main {
 ```java
 // CompareByAge.java
 public class CompareByAge {
-    public static int comparByAge(Student o1, Student o2) {
+    public static int compareByAge(Student o1, Student o2) {
         return o1.getAge() - o2.getAge();
     }
 }
@@ -1660,7 +1660,7 @@ Arrays.sort(students, CompareByAge::comparByAge);
 
 ```java
 public class CompareByHeight {
-    public int comparebyHeight(Student o1, Student o2) {
+    public int compareByHeight(Student o1, Student o2) {
         return (int) (o2.getHeight() - o1.getHeight());
     }
 }

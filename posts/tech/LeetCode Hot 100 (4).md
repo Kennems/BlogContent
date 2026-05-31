@@ -222,9 +222,7 @@ class Solution:
 
  
 
-##       
-
-##   (66[20. 有效的括号](https://leetcode.cn/problems/valid-parentheses/)
+##   (66)[20. 有效的括号](https://leetcode.cn/problems/valid-parentheses/)
 
 给定一个只包括 `'('`，`')'`，`'{'`，`'}'`，`'['`，`']'` 的字符串 `s` ，判断字符串是否有效。
 
@@ -268,10 +266,6 @@ class Solution:
 
         return len(stk) == 0
 ```
-
-
-
-##          
 
 
 

@@ -1,3 +1,13 @@
+---
+title : 'Android 八股'
+date : 2024-08-14T03:36:29+08:00
+lastmod: 2026-03-22T20:43:04+08:00
+description : "你准备的面经已经很全面且详细了，不过为了更全面地覆盖面试中可能涉及的问题，以下是一些补充和调整："
+image : img/cat.jpg
+draft : false
+categories : ["Android"]
+tags : ["学习笔记", "Android"]
+---
 # Android 八股
 
 你准备的面经已经很全面且详细了，不过为了更全面地覆盖面试中可能涉及的问题，以下是一些补充和调整：

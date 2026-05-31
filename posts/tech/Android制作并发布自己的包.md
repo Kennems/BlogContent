@@ -1,3 +1,13 @@
+---
+title : '制作并发布自己的包'
+date : 2026-03-22T20:43:04+08:00
+lastmod: 2026-03-22T20:43:04+08:00
+description : "制作并发布自己的包"
+image : img/cat.jpg
+draft : false
+categories : ["Android"]
+tags : ["学习笔记", "Android"]
+---
 # 制作并发布自己的包
 
 ## 首先创建一个library

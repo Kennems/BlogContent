@@ -1,3 +1,13 @@
+---
+title : 'Android学习计划'
+date : 2024-08-14T03:36:29+08:00
+lastmod: 2026-05-04T12:51:46+08:00
+description : "6.24 - 6.30 学完Android基础，复习完Java基础，JavaWeb基础， 要做到极其熟练才行"
+image : img/cat.jpg
+draft : false
+categories : ["Android"]
+tags : ["学习笔记", "Android"]
+---
 # Android学习计划
 
 6.24 - 6.30 学完Android基础，复习完Java基础，JavaWeb基础， 要做到极其熟练才行

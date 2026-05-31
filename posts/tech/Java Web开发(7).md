@@ -194,7 +194,7 @@ public class TilasWebManagementApplication {
 - 位置：方法，类
 - `@Conditional` 本身是一个父注解，派生出大量的子注解
   - `@ConditionalOnClass`：判断环境中是否有对应**字节码文件**，才注册bean到IOC容器
-  - `@ConditonalOnMissingBean`：判断环境中没有对应的bean（类型或名称），才注册这个bean到IOC容器中 （常用场景：先使用自己创建的bean，如果自己没有创建，则使用系统默认的bean）-- 指定类型（value属性） 或 名称（name属性）
+  - `@ConditionalOnMissingBean`：判断环境中没有对应的bean（类型或名称），才注册这个bean到IOC容器中 （常用场景：先使用自己创建的bean，如果自己没有创建，则使用系统默认的bean）-- 指定类型（value属性） 或 名称（name属性）
   - `@ConditionalProperty`：判断配置文件中有对应属性和值，才注册bean到IOC容器中
 
 #### 自定义`starter`

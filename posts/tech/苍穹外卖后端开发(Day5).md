@@ -41,9 +41,9 @@ redis-cli.exe -h localhost -p 6379 -a 123456
 
 ![image-20241016112512020](https://raw.githubusercontent.com/Kennems/blog-image/main/image-20241016112512020.png)
 
-## 五中常用数据类型介绍
+## 五种常用数据类型介绍
 
-Redis存储的是key-value结构的数据，其中key是字符串类型，value有5中常用的数据类型：
+Redis存储的是key-value结构的数据，其中key是字符串类型，value有5种常用的数据类型：
 
 - 字符串 string
 - 哈希 hash 

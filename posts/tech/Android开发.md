@@ -36,9 +36,7 @@
 
 有三样东西是极端坚硬的，钢铁，钻石，以及认识自己。
 
-stay hungry stay foolish 
-
-![](D:\文档\MarkDown\学习笔记\typora_imag\download (1).png)
+stay hungry stay foolish
 
 高高山顶立，深深海底行
 

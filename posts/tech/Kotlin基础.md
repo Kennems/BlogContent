@@ -934,7 +934,7 @@ fun main() {
 class MagicBox<T : Human>(vararg item: T) {
     var available = false
 
-    // itme是可变参数, 有多个
+    // item是可变参数, 有多个
     // 泛型是可变参数， 必须写out
     var subject: Array<out T> = item
 
@@ -977,7 +977,7 @@ fun main() {
     box1.available = true;
 
     box1.fetch(1)?.run {
-        println("Your find $name")
+        println("You find $name")
     }
 
     val man = box1.fetch(0) {
