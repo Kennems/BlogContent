@@ -49,12 +49,29 @@ tags : ["学习笔记", "Android"]
 
 - **Activity的启动流程**
 
-  Activity 的启动流程涉及多个系统组件：
-  1. 调用 `startActivity()` → 通过 Binder 通知 AMS（ActivityManagerService）
-  2. AMS 检查权限、解析 Intent、确定目标 Activity
-  3. AMS 通过 ApplicationThread 通知目标进程
-  4. 目标进程的 ActivityThread 收到消息后，通过 Handler 切换到主线程
-  5. 依次调用目标 Activity 的 `onCreate()`、`onStart()`、`onResume()`
+  Activity 的启动流程涉及多个系统组件，分为以下几个阶段：
+
+  **1. Launcher 进程**：
+  1. 用户点击应用图标 → Launcher 调用 `startActivity()`
+  2. 通过 Binder 调用 AMS 的 `startActivity()` 方法
+
+  **2. system_server 进程（AMS）**：
+  3. AMS 检查权限、解析 Intent、确定目标 Activity
+  4. AMS 通过 `ActivityStackSupervisor` 管理 Activity 栈
+  5. 如果目标进程不存在，通过 Socket 通知 Zygote fork 新进程
+  6. AMS 通过 `ApplicationThread`（Binder）通知目标进程启动 Activity
+
+  **3. 目标应用进程**：
+  7. `ApplicationThread`（AMS 的 Binder 客户端）收到请求
+  8. 通过 `ActivityThread.H`（Handler）切换到主线程
+  9. 调用 `ActivityThread.handleLaunchActivity()` 执行 Activity 启动
+  10. 反射创建 Activity 实例
+  11. 依次调用 `onCreate()` → `onStart()` → `onResume()`
+
+  **4. 显示阶段**：
+  12. `onResume()` 后调用 `WindowManager.addView()` 添加 DecorView
+  13. `ViewRootImpl.performTraversals()` 执行测量、布局、绘制
+  14. Activity 界面显示给用户
 
 - **onSaveInstanceState(),onRestoreInstanceState的调用时机**
 
@@ -70,6 +87,23 @@ tags : ["学习笔记", "Android"]
   2. **singleTop**：如果栈顶已有实例，则调用 `onNewIntent()` 而非创建新实例。适用于搜索结果页等不需要重复创建的场景
   3. **singleTask**：在任务栈中只存在一个实例，启动时会清除其上方所有 Activity。适用于应用主页
   4. **singleInstance**：独占一个任务栈，适用于来电显示、闹钟等独立功能
+
+  **启动模式对比**：
+  | 模式 | 实例数量 | 任务栈 | 适用场景 |
+  |------|---------|--------|---------|
+  | standard | 多个 | 共享 | 大多数场景 |
+  | singleTop | 栈顶复用 | 共享 | 搜索、详情页 |
+  | singleTask | 全局单例 | 共享 | 主页、首页 |
+  | singleInstance | 全局单例 | 独占 | 来电、闹钟 |
+
+  **启动模式设置方式**：
+  1. AndroidManifest.xml 中配置 `android:launchMode`
+  2. Intent flags 设置：`FLAG_ACTIVITY_NEW_TASK`、`FLAG_ACTIVITY_SINGLE_TOP` 等
+
+  **singleTask 复杂场景**：
+  - 如果目标 Activity 在其他任务栈中，会将该任务栈切换到前台
+  - 如果目标 Activity 上方有其他 Activity，会被清除（clearTop 效果）
+  - 可配合 `taskAffinity` 属性指定任务栈名称
 
 - **Activity A跳转Activity B，再按返回键，生命周期执行的顺序**
 
@@ -98,12 +132,29 @@ tags : ["学习笔记", "Android"]
 
 - **Activity之间传递数据的方式Intent是否有大小限制，如果传递的数据量偏大，有哪些方案**
 
-  Intent 传递数据有大小限制（通常约 1MB），超过会抛出 `TransactionTooLargeException`。解决方案：
-  1. 使用全局变量或单例传递
-  2. 使用 EventBus 或 LiveData 等事件总线
-  3. 使用数据库或文件存储
-  4. 使用 SharedPreferences
-  5. 使用 ViewModel（同一 Activity 内的 Fragment 间）
+  Intent 传递数据有大小限制，超过会抛出 `TransactionTooLargeException`：
+
+  **大小限制详解**：
+  - **Binder 事务缓冲区**：所有事务共享，大小约为 **1MB**（实际可用约 500KB-800KB）
+  - **单个 Intent 限制**：通常建议不超过 **500KB**
+  - **影响因素**：数据会被序列化，实际占用空间可能增大
+
+  **异常表现**：
+  - `android.os.TransactionTooLargeException`
+  - 系统日志：`binder_alloc_buf, not enough space`
+
+  **解决方案**：
+  1. **使用全局变量/单例**：适合临时数据，注意内存泄漏
+  2. **使用 EventBus/LiveData**：适合组件间通信
+  3. **使用数据库/文件存储**：适合持久化数据
+  4. **使用 SharedPreferences**：适合简单配置数据
+  5. **使用 ViewModel**：适合同一 Activity 内的 Fragment 间共享
+  6. **使用 Bundle + Parcelable**：比 Serializable 更高效
+
+  **最佳实践**：
+  - 大图片/文件：传递 URI 而非实际数据
+  - 列表数据：传递 ID 列表，目标页面重新查询
+  - 避免传递 Bitmap、大文本等大数据
 
 - **Activity的onNewIntent()方法什么时候会执行**
 
@@ -123,12 +174,53 @@ tags : ["学习笔记", "Android"]
   - 使用场景：H5 与 Native 互调、App 间跳转、推送通知跳转
   - 使用方式：在 AndroidManifest 中配置 intent-filter，通过 Intent 解析 URI 跳转
 
-- **ANR 的四种场景**
+- **ANR 的四种场景及超时时间**
 
-  1. **输入事件超时**：5 秒内未响应输入事件（按键、触摸）
-  2. **BroadcastReceiver 超时**：前台 BroadcastReceiver 的 `onReceive()` 必须在 5 秒内完成
-  3. **Service 超时**：`Service.onCreate()`、`onStartCommand()`、`onBind()` 必须在几秒内完成；使用 `startForegroundService()` 必须在 5 秒内调用 `startForeground()`
-  4. **JobScheduler 超时**：`JobService.onStartJob()` 必须在几秒内返回
+  ANR（Application Not Responding）是应用未响应系统事件的错误。四种场景及具体超时时间：
+
+  1. **输入事件超时（Input Dispatching Timeout）**
+     - **超时时间**：5 秒（默认）
+     - **触发条件**：按键事件（KeyEvent）或触摸事件（MotionEvent）在 5 秒内未被处理
+     - **原因**：主线程阻塞（如耗时操作、死锁、GC 停顿）
+     - **日志关键词**：`Input dispatching timed out`
+
+  2. **BroadcastReceiver 超时（Broadcast Timeout）**
+     - **超时时间**：
+       - 前台广播：**10 秒**（Android 14+ 为 6 秒）
+       - 后台广播：**60 秒**
+     - **触发条件**：`onReceive()` 方法执行超时
+     - **原因**：`onReceive()` 中执行耗时操作（网络请求、数据库操作）
+     - **日志关键词**：`Broadcast of Intent { act=... }`
+
+  3. **Service 超时（Service Timeout）**
+     - **超时时间**：
+       - `Service.onCreate()`、`onStartCommand()`、`onBind()`：**20 秒**（前台服务）/ **200 秒**（后台服务）
+       - `startForegroundService()` 后调用 `startForeground()`：**5 秒**（Android 12+ 为 10 秒）
+     - **触发条件**：生命周期方法执行超时
+     - **原因**：在生命周期方法中执行耗时操作
+     - **日志关键词**：`Timeout executing service: ServiceRecord{...}`
+
+  4. **ContentProvider 超时（Content Provider Timeout）**
+     - **超时时间**：**10 秒**（Android 11+）
+     - **触发条件**：`ContentProvider` 的 `onCreate()` 执行超时
+     - **原因**：Provider 初始化耗时
+     - **日志关键词**：`Timeout publishing content providers`
+
+  **ANR 分析方法**：
+  1. 查看 `/data/anr/traces.txt` 获取线程堆栈
+  2. 使用 `adb bugreport` 获取完整日志
+  3. 使用 Android Studio Profiler 分析主线程阻塞点
+  4. 使用 StrictMode 检测主线程违规操作
+
+  **常见 ANR 原因及解决方案**：
+  | 原因 | 解决方案 |
+  |------|---------|
+  | 主线程网络请求 | 移到子线程，使用协程/RxJava |
+  | 主线程数据库操作 | 使用 Room + 协程异步处理 |
+  | 主线程文件IO | 使用 Okio 或协程异步处理 |
+  | 死锁 | 优化锁顺序，使用 tryLock |
+  | 大量计算 | 移到子线程或使用协程 |
+  | Binder 调用阻塞 | 异步 Binder 调用 |
 
   > 参考：[Android Developers - ANR](https://developer.android.com/topic/performance/vitals/anr)
 
@@ -192,13 +284,51 @@ tags : ["学习笔记", "Android"]
   | 停止方式 | stopSelf() 或 stopService() | 所有客户端解绑后自动销毁 |
   | 使用场景 | 后台独立任务 | 需要与组件交互 |
 
+  **Service 超时时间详解**：
+  | 方法 | 前台服务超时 | 后台服务超时 |
+  |------|-------------|-------------|
+  | onCreate() | 20 秒 | 200 秒 |
+  | onStartCommand() | 20 秒 | 200 秒 |
+  | onBind() | 20 秒 | 200 秒 |
+  | startForeground() | 5 秒（必须调用） | 5 秒（必须调用） |
+
+  **注意**：Android 12+ 要求 `startForegroundService()` 后必须在 **10 秒** 内调用 `startForeground()`，否则会抛出 `ForegroundServiceDidNotStartInTimeException`。
+
 - **如何保证Service不被杀死 ？**
 
-  1. **前台服务**：通过 `startForeground()` 显示持久通知，系统很少杀死前台服务
-  2. **返回 START_STICKY**：`onStartCommand()` 返回此值，系统会在资源可用时重建服务
-  3. **双进程守护**：通过两个 Service 相互拉活（不推荐，Android 高版本已限制）
-  4. **使用 WorkManager**：对于需要保证执行的任务，使用 Jetpack WorkManager
-  5. **账号同步**：利用 AccountSync 机制保活（不推荐）
+  **方案一：前台服务（推荐）**
+  ```kotlin
+  class MyService : Service() {
+      override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+          val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+              .setContentTitle("正在运行")
+              .setContentText("服务运行中...")
+              .setSmallIcon(R.drawable.ic_notification)
+              .build()
+          startForeground(1, notification) // 必须在 5 秒内调用
+          return START_STICKY
+      }
+  }
+  ```
+
+  **方案二：返回 START_STICKY**
+  - 系统会在资源可用时自动重建服务
+  - 适用于不需要精确恢复的场景（如音乐播放器）
+
+  **方案三：使用 WorkManager（推荐用于任务型服务）**
+  ```kotlin
+  val workRequest = OneTimeWorkRequestBuilder<MyWorker>()
+      .setConstraints(Constraints.Builder()
+          .setRequiredNetworkType(NetworkType.CONNECTED)
+          .build())
+      .build()
+  WorkManager.getInstance(context).enqueue(workRequest)
+  ```
+
+  **注意事项**：
+  - Android 8.0+ 后台服务限制严格，推荐使用前台服务或 WorkManager
+  - 双进程守护、账号同步等方式在高版本 Android 已失效
+  - 最佳实践：使用 WorkManager 处理需要保证执行的任务
 
 - **Service与Activity怎么实现通信**
 
@@ -265,10 +395,21 @@ tags : ["学习笔记", "Android"]
   1. **有序广播**：通过 `sendOrderedBroadcast()` 发送，按优先级依次传递，接收器可以传播结果或终止广播
   2. **普通广播**：通过 `sendBroadcast()` 发送，同时发送给所有接收器，效率高但无法终止
 
-  使用场景：
+  **广播超时时间**：
+  | 类型 | 超时时间 | 说明 |
+  |------|---------|------|
+  | 前台广播 | 10 秒 | Android 14+ 为 6 秒 |
+  | 后台广播 | 60 秒 | 所有 Android 版本 |
+
+  **使用场景**：
   - 系统广播：开机、网络变化、电量变化等
   - 应用内通信：组件间消息传递
   - 跨应用通信：通知其他应用数据更新
+
+  **Android 8.0+ 广播限制**：
+  1. 大部分隐式广播不允许静态注册
+  2. 需要使用显式 Intent 或指定包名
+  3. 应用内广播推荐使用 LocalBroadcastManager（已废弃）或 LiveData
 
 - **广播的两种注册方式的区别**
 
@@ -391,12 +532,31 @@ tags : ["学习笔记", "Android"]
 
 - **Handler导致的内存泄露原因及其解决方案**
 
-  原因：非静态内部类持有外部类引用，Handler 的生命周期比 Activity 长。
+  **原因**：非静态内部类 Handler 持有外部类（Activity）引用，形成引用链：
+  ```
+  MessageQueue → Message → Handler → Activity
+  ```
+  当 Activity 销毁时，如果 MessageQueue 中还有未处理的延迟消息，Handler 和 Activity 都无法被 GC 回收。
 
-  解决方案：
-  1. 使用静态内部类 + 弱引用
-  2. 在 onDestroy() 中调用 `handler.removeCallbacksAndMessages(null)`
-  3. 使用 Lifecycle-aware 的 Handler
+  **解决方案**：
+  1. **静态内部类 + 弱引用**（推荐）：
+     ```kotlin
+     class SafeHandler(activity: MyActivity) : Handler(Looper.getMainLooper()) {
+         private val ref = WeakReference(activity)
+         override fun handleMessage(msg: Message) {
+             val activity = ref.get() ?: return
+             // 安全使用 activity
+         }
+     }
+     ```
+  2. **在 onDestroy() 中移除所有消息**：
+     ```kotlin
+     override fun onDestroy() {
+         super.onDestroy()
+         handler.removeCallbacksAndMessages(null) // 移除所有消息和回调
+     }
+     ```
+  3. **使用 Lifecycle-aware 的 Handler**：配合 Lifecycle 组件自动管理
 
 - **一个线程可以有几个Handler,几个Looper,几个MessageQueue对象**
 
@@ -563,11 +723,35 @@ tags : ["学习笔记", "Android"]
 
 - **ANR和Handler的联系**
 
-  ANR 发生在主线程 Handler 处理消息超时：
-  - 输入事件 5 秒无响应
-  - BroadcastReceiver 5 秒（前台）
-  - Service 几秒（生命周期方法）
-  - startForegroundService 5 秒内必须调用 startForeground()
+  ANR 与 Handler 机制密切相关：
+
+  **核心原理**：
+  - 主线程的 Looper 不断从 MessageQueue 取消息并处理
+  - 如果某个消息处理时间过长，后续消息（如输入事件）就会被阻塞
+  - 系统检测到消息处理超时就会触发 ANR
+
+  **ANR 触发流程**：
+  1. 输入事件（按键/触摸）到达 InputDispatcher
+  2. InputDispatcher 通过 Binder 发送给应用主线程
+  3. 主线程 Handler 将事件封装成 Message 放入 MessageQueue
+  4. 如果主线程正在处理其他耗时消息，事件无法及时处理
+  5. InputDispatcher 等待 5 秒后触发 ANR
+
+  **超时时间详解**：
+  | 场景 | 超时时间 | 说明 |
+  |------|---------|------|
+  | 输入事件 | 5 秒 | 按键或触摸事件未处理 |
+  | 前台广播 | 10 秒 | onReceive() 执行超时 |
+  | 后台广播 | 60 秒 | onReceive() 执行超时 |
+  | 前台 Service | 20 秒 | 生命周期方法超时 |
+  | 后台 Service | 200 秒 | 生命周期方法超时 |
+  | startForeground | 5 秒 | 调用 startForeground() 超时 |
+
+  **优化建议**：
+  1. 主线程避免耗时操作（网络、数据库、文件IO）
+  2. 使用 Systrace 分析主线程阻塞点
+  3. 合理使用 Handler.postDelayed() 避免消息堆积
+  4. 使用 IdleHandler 在空闲时执行低优先级任务
 
   > 参考：[Android Developers - ANR](https://developer.android.com/topic/performance/vitals/anr)
 
@@ -588,6 +772,28 @@ tags : ["学习笔记", "Android"]
   - `EXACTLY`：精确值（match_parent 或具体 dp）
   - `AT_MOST`：最大值（wrap_content）
   - `UNSPECIFIED`：无限制（ScrollView 中的子 View）
+
+  **MeasureSpec 构成**：
+  ```
+  |<- 高2位: 模式 ->|<------- 低30位: 大小 ------->|
+  ```
+
+  **模式说明**：
+  | 模式 | 含义 | 对应 LayoutParams |
+  |------|------|------------------|
+  | EXACTLY | 精确尺寸 | match_parent 或具体 dp 值 |
+  | AT_MOST | 最大尺寸 | wrap_content |
+  | UNSPECIFIED | 无限制 | 系统内部使用（如 ScrollView） |
+
+  **MeasureSpec 生成规则**：
+  - `MeasureSpec.makeMeasureSpec(size, mode)`：创建 MeasureSpec
+  - `MeasureSpec.getMode(spec)`：获取模式
+  - `MeasureSpec.getSize(spec)`：获取大小
+
+  **为什么 ScrollView 子 View 是 UNSPECIFIED**：
+  - ScrollView 可以滚动，子 View 高度不受限制
+  - 子 View 可以比 ScrollView 更高
+  - 因此使用 UNSPECIFIED 模式
 
 - **子View创建MeasureSpec创建规则是什么**
 
@@ -651,21 +857,117 @@ tags : ["学习笔记", "Android"]
 
   | 特性 | View | SurfaceView |
   |------|------|-------------|
-  | 绘制线程 | 主线程 | 子线程 |
-  | Surface | 共享 | 独立 |
-  | 刷新效率 | 低 | 高 |
-  | 适用场景 | 静态 UI | 频繁刷新 |
+  | 绘制线程 | 主线程 | 独立子线程 |
+  | Surface | 共享主窗口 Surface | 拥有独立 Surface |
+  | 刷新效率 | 低（需主线程） | 高（独立线程） |
+  | 双缓冲 | 不支持 | 支持 |
+  | 透明度 | 支持 | 不支持（默认不透明） |
+  | Z 序 | 与普通 View 相同 | 默认在窗口 Surface 之下 |
+  | 适用场景 | 静态 UI、低频刷新 | 高频刷新（视频、游戏） |
+
+  **SurfaceView 使用示例**：
+  ```kotlin
+  class MySurfaceView(context: Context) : SurfaceView(context), SurfaceHolder.Callback {
+      private var drawThread: DrawThread? = null
+      
+      override fun surfaceCreated(holder: SurfaceHolder) {
+          drawThread = DrawThread(holder).apply { start() }
+      }
+      
+      override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+          drawThread?.setSize(width, height)
+      }
+      
+      override fun surfaceDestroyed(holder: SurfaceHolder) {
+          drawThread?.stop()
+          drawThread = null
+      }
+      
+      inner class DrawThread(private val holder: SurfaceHolder) : Thread() {
+          override fun run() {
+              while (isRunning) {
+                  val canvas = holder.lockCanvas() ?: continue
+                  try {
+                      draw(canvas) // 在子线程中绘制
+                  } finally {
+                      holder.unlockCanvasAndPost(canvas)
+                  }
+              }
+          }
+      }
+  }
+  ```
 
 - **SurfaceView为什么可以直接子线程绘制**
 
-  因为 SurfaceView 有独立的 Surface，不通过 ViewRootImpl 的主线程绘制流程，可以直接在子线程锁定 Canvas 进行绘制。
+  **原因**：SurfaceView 拥有独立的 Surface，不通过 ViewRootImpl 的主线程绘制流程。
+
+  **传统 View 绘制流程**：
+  ```
+  ViewRootImpl.performTraversals()
+       ↓
+  performMeasure() → performLayout() → performDraw()
+       ↓
+  通过 Canvas 绘制到主线程 Surface
+  ```
+
+  **SurfaceView 绘制流程**：
+  ```
+  SurfaceView.getHolder()
+       ↓
+  lockCanvas() // 锁定独立 Surface
+       ↓
+  在子线程中绘制
+       ↓
+  unlockCanvasAndPost() // 提交绘制
+       ↓
+  SurfaceFlinger 合成显示
+  ```
+
+  **双缓冲机制**：
+  - SurfaceView 内部维护两个缓冲区（前缓冲区和后缓冲区）
+  - 前缓冲区显示当前帧，后缓冲区准备下一帧
+  - 绘制完成后交换缓冲区，避免闪烁
 
 - **SurfaceView、TextureView、SurfaceTexture、GLSurfaceView**
 
-  - **SurfaceView**：独立 Surface，性能好但无法做动画
-  - **TextureView**：支持动画和变换，但性能略差
-  - **SurfaceTexture**：TextureView 的底层实现
-  - **GLSurfaceView**：支持 OpenGL ES 绘制
+  | 组件 | 说明 | 适用场景 |
+  |------|------|---------|
+  | **SurfaceView** | 拥有独立 Surface，支持子线程绘制 | 视频播放、游戏、相机预览 |
+  | **TextureView** | 支持动画和变换，性能略差 | 视频播放（需要动画）、画中画 |
+  | **SurfaceTexture** | TextureView 的底层实现 | 自定义渲染管线 |
+  | **GLSurfaceView** | 支持 OpenGL ES 绘制 | 3D 游戏、AR/VR |
+
+  **对比详解**：
+  | 特性 | SurfaceView | TextureView | GLSurfaceView |
+  |------|-------------|-------------|---------------|
+  | 独立 Surface | 是 | 否 | 是 |
+  | 子线程绘制 | 支持 | 不支持 | 支持 |
+  | 动画/变换 | 不支持 | 支持 | 支持 |
+  | 透明度 | 默认不透明 | 支持透明 | 支持透明 |
+  | 性能 | 高 | 中 | 高 |
+  | 内存占用 | 低 | 高 | 高 |
+
+  **使用示例**：
+  ```kotlin
+  // TextureView 使用
+  val textureView = TextureView(context)
+  textureView.surfaceTextureListener = object : TextureView.SurfaceTextureListener {
+      override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
+          val surface = Surface(surface)
+          // 开始播放视频
+      }
+      override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture, width: Int, height: Int) {}
+      override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean = true
+      override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {}
+  }
+  
+  // GLSurfaceView 使用
+  val glSurfaceView = GLSurfaceView(context)
+  glSurfaceView.setEGLContextClientVersion(2)
+  glSurfaceView.setRenderer(MyRenderer())
+  glSurfaceView.renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY
+  ```
 
 - **getWidth()方法和getMeasureWidth()区别**
 
@@ -747,7 +1049,28 @@ tags : ["学习笔记", "Android"]
 
   分发流程：Activity → Window → DecorView → ViewGroup → View
 
-  伪代码：
+  **事件分发流程详解**：
+  ```
+  Activity.dispatchTouchEvent()
+    ↓
+  PhoneWindow.superDispatchTouchEvent()
+    ↓
+  DecorView.superDispatchTouchEvent()
+    ↓
+  ViewGroup.dispatchTouchEvent()
+    ├── onInterceptTouchEvent() == true
+    │     ↓
+    │   ViewGroup.onTouchEvent()
+    │     ↓
+    │   Activity.onTouchEvent()
+    └── onInterceptTouchEvent() == false
+          ↓
+        child.dispatchTouchEvent()
+          ↓
+        View.onTouchEvent()
+  ```
+
+  **伪代码**：
   ```java
   public boolean dispatchTouchEvent(MotionEvent ev) {
       boolean consume = false;
@@ -759,6 +1082,11 @@ tags : ["学习笔记", "Android"]
       return consume;
   }
   ```
+
+  **事件分发关键点**：
+  1. ACTION_DOWN 决定后续事件的分发目标
+  2. 子 View 消费 ACTION_DOWN 后，后续事件直接传递给它
+  3. 父 View 拦截事件后，子 View 收到 ACTION_CANCEL
 
 - **view的onTouchEvent，OnClickListerner和OnTouchListener的onTouch方法 三者优先级**
 
@@ -827,10 +1155,31 @@ tags : ["学习笔记", "Android"]
   3. **ViewCacheExtension**：自定义缓存（可选）
   4. **RecycledViewPool**：缓存池，默认大小 5，存储已清理的 ViewHolder
 
-  使用场景：
+  **缓存机制详解**：
+  | 缓存级别 | 默认大小 | 复用条件 | 是否需要 onBindViewHolder |
+  |---------|---------|---------|-------------------------|
+  | mAttachedScrap | 无限 | 屏幕内直接复用 | 否 |
+  | mCachedViews | 2 | 按 position/id 匹配 | 否 |
+  | ViewCacheExtension | 自定义 | 自定义匹配 | 自定义 |
+  | RecycledViewPool | 5 | 按 viewType 匹配 | 是 |
+
+  **使用场景**：
   - mAttachedScrap：列表滚动时快速复用
   - mCachedViews：来回滚动时复用
   - RecycledViewPool：不同列表间共享 ViewHolder
+
+  **RecycledViewPool 工作原理**：
+  1. 按 viewType 分组存储
+  2. 每个 viewType 默认最多 5 个 ViewHolder
+  3. 复用时需要调用 onBindViewHolder()
+  4. 可通过 `setMaxRecycledViews()` 调整大小
+
+  **缓存命中流程**：
+  1. 先从 mAttachedScrap 查找（屏幕内）
+  2. 再从 mCachedViews 查找（按 position）
+  3. 然后从 ViewCacheExtension 查找（自定义）
+  4. 最后从 RecycledViewPool 查找（按 viewType）
+  5. 都没有则创建新的 ViewHolder
 
 - **RecyclerView的滑动回收复用机制**
 
@@ -951,34 +1300,203 @@ tags : ["学习笔记", "Android"]
 
 - **WebView与 js的交互**
 
-  1. **Android 调用 JS**：
-     - `loadUrl("javascript:jsMethod()")`
-     - `evaluateJavascript()`（推荐，可获取返回值）
+  **1. Android 调用 JS**：
 
-  2. **JS 调用 Android**：
-     - `addJavascriptInterface()`（注意安全问题）
-     - `shouldOverrideUrlLoading()` 拦截 URL
-     - `onJsAlert()`/`onJsConfirm()` 拦截 JS 弹窗
+  **方式一：loadUrl（已废弃）**
+  ```kotlin
+  webView.loadUrl("javascript:jsMethod('Hello')")
+  ```
+
+  **方式二：evaluateJavascript（推荐）**
+  ```kotlin
+  webView.evaluateJavascript("jsMethod('Hello')") { result ->
+      // 接收 JS 返回值
+      Log.d("WebView", "JS 返回: $result")
+  }
+  ```
+
+  **2. JS 调用 Android**：
+
+  **方式一：addJavascriptInterface（推荐）**
+  ```kotlin
+  // 定义暴露给 JS 的类
+  class JsBridge {
+      @JavascriptInterface
+      fun showToast(message: String) {
+          Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+      }
+      
+      @JavascriptInterface
+      fun getData(): String {
+          return "Android 数据"
+      }
+  }
+  
+  // 注册到 WebView
+  webView.addJavascriptInterface(JsBridge(), "AndroidBridge")
+  ```
+
+  ```javascript
+  // JS 中调用
+  AndroidBridge.showToast("Hello from JS")
+  var data = AndroidBridge.getData()
+  ```
+
+  **方式二：shouldOverrideUrlLoading**
+  ```kotlin
+  webView.webViewClient = object : WebViewClient() {
+      override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+          val url = request.url.toString()
+          if (url.startsWith("myapp://")) {
+              // 拦截 URL，执行 Android 逻辑
+              handleUrl(url)
+              return true
+          }
+          return false
+      }
+  }
+  ```
+
+  ```javascript
+  // JS 中触发
+  window.location.href = "myapp://action?param=value"
+  ```
+
+  **方式三：onJsAlert/onJsConfirm**
+  ```kotlin
+  webView.webChromeClient = object : WebChromeClient() {
+      override fun onJsAlert(view: WebView, url: String, message: String, result: JsResult): Boolean {
+          // 拦截 JS alert
+          AlertDialog.Builder(context)
+              .setMessage(message)
+              .setPositiveButton("OK") { _, _ -> result.confirm() }
+              .show()
+          return true
+      }
+  }
+  ```
 
 - **WebView的漏洞**
 
-  1. **addJavascriptInterface 漏洞**：Android 4.2 以下远程代码执行
-  2. **WebView 任意文件访问**：通过 file 协议访问本地文件
-  3. **WebView 域控制不严格**：白名单绕过
+  **1. addJavascriptInterface 漏洞**：
+  - **影响版本**：Android 4.2 以下
+  - **漏洞原理**：通过反射调用任意 Java 方法，可能导致远程代码执行
+  - **解决方案**：使用 `@JavascriptInterface` 注解（Android 4.2+）
 
-  解决方案：
-  - 使用 `@JavascriptInterface` 注解
-  - 禁用 file 协议
-  - 使用白名单校验域名
+  ```kotlin
+  // 危险：暴露整个对象
+  webView.addJavascriptInterface(this, "Bridge") // 不安全
+  
+  // 安全：使用 @JavascriptInterface 注解
+  class SafeBridge {
+      @JavascriptInterface
+      fun safeMethod() { /* 安全方法 */ }
+      
+      fun unsafeMethod() { /* 不会被 JS 调用 */ }
+  }
+  ```
+
+  **2. 任意文件访问漏洞**：
+  - **漏洞原理**：使用 `file://` 协议可以访问本地文件
+  - **解决方案**：禁用 file 协议访问
+
+  ```kotlin
+  webView.settings.allowFileAccess = false
+  webView.settings.allowContentAccess = false
+  ```
+
+  **3. 域名控制不严格**：
+  - **漏洞原理**：白名单校验不严格，可能导致钓鱼攻击
+  - **解决方案**：严格校验域名
+
+  ```kotlin
+  webView.webViewClient = object : WebViewClient() {
+      override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+          val host = request.url.host
+          if (host == "trusted.com" || host?.endsWith(".trusted.com") == true) {
+              return false // 允许加载
+          }
+          return true // 阻止加载
+      }
+  }
+  ```
+
+  **4. 其他安全建议**：
+  - 启用 HTTPSOnlyMode
+  - 禁用缩放（防止钓鱼）
+  - 清除缓存和 Cookie
+  ```kotlin
+  webView.settings.setSupportZoom(false)
+  webView.clearCache(true)
+  webView.clearHistory()
+  ```
 
 - **JsBridge原理**
 
-  JsBridge 是 JS 与 Native 通信的桥梁：
-  1. **URL 拦截方案**：JS 通过 iframe 发送 URL，Native 拦截
-  2. **JavaScript 注入方案**：Native 注入 JS 代码到 WebView
-  3. **addJavascriptInterface 方案**：直接暴露 Java 对象给 JS
+  JsBridge 是 JS 与 Native 通信的桥梁，解决 JS 无法直接调用 Native API 的问题。
 
-  常用库：JsBridge、DSBridge
+  **三种实现方案对比**：
+  | 方案 | 原理 | 优点 | 缺点 |
+  |------|------|------|------|
+  | URL 拦截 | JS 通过 iframe 发送 URL，Native 拦截 | 兼容性好 | 只能传递字符串 |
+  | JavaScript 注入 | Native 注入 JS 代码到 WebView | 灵活 | 需要多次交互 |
+  | addJavascriptInterface | 直接暴露 Java 对象给 JS | 简单直接 | 安全风险（Android 4.2 以下） |
+
+  **1. URL 拦截方案**：
+  ```javascript
+  // JS 端
+  function callNative(action, data) {
+      var iframe = document.createElement('iframe');
+      iframe.src = 'jsbridge://' + action + '?' + encodeURIComponent(JSON.stringify(data));
+      document.body.appendChild(iframe);
+      setTimeout(function() { document.body.removeChild(iframe); }, 0);
+  }
+  ```
+
+  ```kotlin
+  // Native 端
+  webView.webViewClient = object : WebViewClient() {
+      override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+          val url = request.url.toString()
+          if (url.startsWith("jsbridge://")) {
+              val action = request.url.getQueryParameter("action")
+              val data = URLDecoder.decode(request.url.getQueryParameter("data"), "UTF-8")
+              handleJsBridge(action, data)
+              return true
+          }
+          return false
+      }
+  }
+  ```
+
+  **2. addJavascriptInterface 方案（推荐）**：
+  ```kotlin
+  class JsBridge {
+      @JavascriptInterface
+      fun call(action: String, data: String, callbackId: String) {
+          // 处理 JS 调用
+          val result = handleAction(action, data)
+          // 回调 JS
+          webView.evaluateJavascript("window.callbacks['$callbackId']('$result')", null)
+      }
+  }
+  
+  webView.addJavascriptInterface(JsBridge(), "JsBridge")
+  ```
+
+  ```javascript
+  // JS 端
+  window.JsBridge.call('getUserData', '{}', function(result) {
+      console.log('用户数据:', result);
+  });
+  ```
+
+  **常用 JsBridge 库**：
+  | 库 | 特点 |
+  |------|------|
+  | JsBridge | 腾讯开源，功能完善 |
+  | DSBridge | 支持同步调用 |
+  | DSBridge-Android | 跨平台支持 |
 
 ## 11.动画
 
@@ -1178,37 +1696,71 @@ tags : ["学习笔记", "Android"]
 
 - **为何新增Binder来作为主要的IPC方式**
 
-  1. 性能好：只需一次数据拷贝
-  2. 安全：支持权限校验
-  3. 使用方便：面向对象接口
+  与其他 IPC 方式对比：
+  | IPC 方式 | 数据拷贝次数 | 安全性 | 使用难度 |
+  |---------|------------|--------|---------|
+  | 共享内存 | 0 次 | 低 | 复杂 |
+  | 管道/消息队列 | 2 次 | 低 | 中等 |
+  | Socket | 2 次 | 中 | 中等 |
+  | **Binder** | **1 次** | **高** | **简单** |
+
+  Binder 优势：
+  1. **性能好**：只需一次数据拷贝（通过 mmap 内存映射），共享内存虽为 0 次但需要自己实现同步机制
+  2. **安全**：支持 UID/PID 身份验证，接收方可以校验发送方身份，Android 安全机制的基础
+  3. **使用方便**：面向对象接口设计，Client 可以像调用本地方法一样调用远程方法
 
 - **什么是Binder**
 
-  Binder 是 Android 的跨进程通信机制：
-  - 本质：驱动程序（/dev/binder）
-  - 作用：不同进程间的数据传输
+  Binder 是 Android 特有的跨进程通信（IPC）机制：
+  - **本质**：基于 C/S 架构的通信框架，核心是 `/dev/binder` 驱动程序
+  - **组成**：Client（客户端）、Server（服务端）、ServiceManager（服务注册中心）、Binder 驱动
+  - **作用**：不同进程间的安全、高效数据传输
+  - **通信模型**：代理模式（Proxy-Stub），Client 持有 Server 的代理对象，通过代理调用远程方法
 
-- **Binder的原理**
+- **Binder的原理（完整通信流程）**
 
-  1. Client 通过 Binder 代理（Proxy）发送请求
-  2. 请求通过 Binder 驱动传递到 Server
-  3. Server 通过 Binder 实体（Stub）处理请求
-  4. 结果通过 Binder 驱动返回给 Client
+  ```
+  Client 进程                    Binder 驱动                    Server 进程
+      |                             |                             |
+      |  1. proxy.transact()        |                             |
+      |  ----序列化参数到 Parcel----> |                             |
+      |                             |  2. copy_from_user()        |
+      |                             |  ----拷贝数据到内核缓冲区-->  |
+      |                             |                             |
+      |                             |  3. 唤醒 Server 线程         |
+      |                             |  ----mmap 映射区直接读取--->  |
+      |                             |                             |
+      |                             |  4. stub.onTransact()       |
+      |                             |  <----处理结果写入 Parcel---  |
+      |                             |                             |
+      |  6. 返回结果                 |  5. 唤醒 Client 线程         |
+      |  <----从映射区读取结果------- |                             |
+  ```
+
+  核心步骤：
+  1. Client 通过 `Proxy.transact()` 发送请求，将参数序列化到 Parcel
+  2. Binder 驱动通过 `copy_from_user()` 将数据拷贝到内核缓冲区
+  3. 接收方通过 `mmap()` 映射的内存区域直接读取数据（无需第二次拷贝）
+  4. Server 的 `Stub.onTransact()` 被调用，处理请求并返回结果
+  5. 结果通过同样的机制返回给 Client
 
 - **Binder Driver 如何在内核空间中做到一次拷贝的？**
 
-  使用 `mmap()` 内存映射：
-  1. 接收方在内核空间创建一块映射内存
-  2. 发送方的数据直接拷贝到这块内存
-  3. 接收方可以直接访问，无需第二次拷贝
+  关键在于 `mmap()` 内存映射：
+  1. **接收方初始化时**：调用 `mmap()` 将内核缓冲区映射到用户空间
+  2. **发送数据时**：Binder 驱动调用 `copy_from_user()` 将发送方数据拷贝到内核缓冲区（第 1 次拷贝）
+  3. **接收数据时**：由于内核缓冲区与用户空间通过 mmap 映射，接收方可直接读取，无需再次拷贝
+
+  对比传统 IPC（如管道）：需要 `copy_from_user()` + `copy_to_user()` 两次拷贝。
 
 - **使用Binder进行数据传输的具体过程**
 
-  1. 发送方将数据序列化到 Parcel
-  2. 通过 Binder 驱动调用 `transact()`
-  3. 驱动将数据拷贝到接收方的映射内存
-  4. 接收方的 `onTransact()` 被调用
-  5. 接收方从 Parcel 反序列化数据
+  1. **序列化**：发送方将数据写入 `Parcel` 对象（`writeString()`、`writeInt()` 等）
+  2. **发起调用**：通过 Proxy 调用 `transact()` 方法，指定方法编号和数据
+  3. **驱动传输**：Binder 驱动将数据从发送方拷贝到内核缓冲区
+  4. **反序列化**：Server 端 `onTransact()` 从 Parcel 中读取数据（`readString()`、`readInt()` 等）
+  5. **执行逻辑**：Server 执行实际业务逻辑
+  6. **返回结果**：Server 将结果写入 `reply` Parcel，通过驱动返回给 Client
 
 - **Binder框架中ServiceManager的作用**
 
@@ -1219,22 +1771,89 @@ tags : ["学习笔记", "Android"]
 
 - **什么是AIDL**
 
-  AIDL（Android Interface Definition Language）是 Android 的接口定义语言，用于定义跨进程通信的接口。
+  AIDL（Android Interface Definition Language）是 Android 的接口定义语言，用于定义跨进程通信的接口。类似于其他 IDL 语言，AIDL 允许定义客户端和服务端都认可的编程接口，以便使用 Binder 进行跨进程通信。
+
+  **AIDL 文件示例**：
+  ```aidl
+  // IMyAidlInterface.aidl
+  package com.example;
+  
+  interface IMyAidlInterface {
+      int add(int a, int b);
+      String getData();
+  }
+  ```
+
+  **编译后生成的 Java 代码**：
+  - `Stub`：抽象类，继承 `Binder`，实现 `IMyAidlInterface`，运行在 Server 端
+  - `Proxy`：实现 `IMyAidlInterface`，运行在 Client 端，内部通过 `transact()` 调用远程方法
 
 - **AIDL使用的步骤**
 
-  1. 创建 .aidl 文件定义接口
-  2. 编译生成 Stub 和 Proxy 类
-  3. Server 实现 Stub 接口
-  4. Client 通过 Proxy 调用
+  **1. 定义 AIDL 接口**（Client 和 Server 共享）：
+  - 创建 `.aidl` 文件
+  - 定义方法签名（不支持 `static`、`public` 等修饰符）
+
+  **2. Server 端实现**：
+  ```kotlin
+  class MyService : Service() {
+      private val binder = object : IMyAidlInterface.Stub() {
+          override fun add(a: Int, b: Int): Int = a + b
+          override fun getData(): String = "Hello from Server"
+      }
+      
+      override fun onBind(intent: Intent): IBinder = binder
+  }
+  ```
+
+  **3. Client 端绑定和调用**：
+  ```kotlin
+  class MainActivity : AppCompatActivity() {
+      private var myAidl: IMyAidlInterface? = null
+      
+      private val connection = object : ServiceConnection {
+          override fun onServiceConnected(name: ComponentName, service: IBinder) {
+              myAidl = IMyAidlInterface.Stub.asInterface(service)
+          }
+          override fun onServiceDisconnected(name: ComponentName) {
+              myAidl = null
+          }
+      }
+      
+      override fun onCreate(savedInstanceState: Bundle?) {
+          super.onCreate(savedInstanceState)
+          val intent = Intent(this, MyService::class.java)
+          bindService(intent, connection, Context.BIND_AUTO_CREATE)
+      }
+      
+      private fun callRemote() {
+          val result = myAidl?.add(1, 2) // 跨进程调用
+      }
+  }
+  ```
+
+  **4. 配置 AndroidManifest.xml**：
+  ```xml
+  <service android:name=".MyService" android:exported="true">
+      <intent-filter>
+          <action android:name="com.example.IMyAidlInterface" />
+      </intent-filter>
+  </service>
+  ```
 
 - **AIDL支持哪些数据类型**
 
-  1. 基本数据类型
-  2. String、CharSequence
-  3. List、Map
-  4. Parcelable 对象
-  5. AIDL 接口
+  | 类型 | 说明 |
+  |------|------|
+  | 基本数据类型 | `int`、`long`、`boolean`、`float`、`double`、`char`、`byte` |
+  | String、CharSequence | 文本类型 |
+  | List<T> | 元素必须是 AIDL 支持的类型或 Parcelable |
+  | Map<K,V> | Key/Value 必须是 AIDL 支持的类型 |
+  | Parcelable 对象 | 需要实现 `Parcelable` 接口 |
+  | AIDL 接口 | 支持嵌套 AIDL 接口 |
+  | 数组 | 以上类型的数组 |
+
+  **不支持**：`short`、`Object`、泛型类型
 
 - **AIDL的关键类，方法和工作流程**
 
@@ -1252,11 +1871,36 @@ tags : ["学习笔记", "Android"]
 
 - **使用 Binder 传输数据的最大限制是多少，被占满后会导致什么问题**
 
-  限制：约 1MB（所有事务共享）
+  **Binder 事务缓冲区限制**：
+  - **总大小限制**：约 **1MB**（所有事务共享）
+  - **实际可用**：约 **500KB-800KB**（系统会预留一部分）
+  - **单个事务限制**：建议不超过 **500KB**
 
-  被占满后：
+  **缓冲区结构**：
+  ```
+  Binder 驱动为每个进程分配一个 mmap 映射区域
+  - 大小：通常为 1MB - 8KB（一页）
+  - 用途：所有 Binder 事务共享
+  - 包含：数据区 + 状态区
+  ```
+
+  **被占满后的问题**：
   1. `TransactionTooLargeException` 异常
-  2. 其他事务无法执行
+  2. 其他事务无法执行，导致应用卡顿或 ANR
+  3. 严重时可能导致应用崩溃
+
+  **常见触发场景**：
+  1. Intent 传递大 Bitmap
+  2. Bundle 中存储大量数据
+  3. AIDL 传输大文件
+  4. 多个 Binder 事务同时进行
+
+  **解决方案**：
+  1. **传递 URI 而非实际数据**：大文件传递文件路径
+  2. **分批传输**：大数据分多次传输
+  3. **使用共享内存**：ashmem 传递大数据
+  4. **使用 ContentProvider**：大数据通过 Provider 共享
+  5. **压缩数据**：减少传输数据量
 
 - **Binder 驱动加载过程中有哪些重要的步骤**
 
@@ -1295,11 +1939,43 @@ tags : ["学习笔记", "Android"]
 
   内存泄漏：程序不再使用的对象无法被 GC 回收。
 
-  原因：
-  1. 静态变量持有 Activity 引用
-  2. 非静态内部类持有外部类引用
-  3. 未关闭的资源（Cursor、Stream）
-  4. 未取消的监听器
+  **常见内存泄漏原因**：
+  1. **静态变量持有 Activity 引用**：静态变量生命周期长于 Activity
+  2. **非静态内部类持有外部类引用**：如 Handler、AsyncTask、Thread
+  3. **未关闭的资源**：Cursor、Stream、Bitmap 等
+  4. **未取消的监听器**：注册的监听器未注销
+  5. **单例持有 Context**：单例持有 Activity Context
+  6. **动画未取消**：无限循环动画未在 onDestroy 中取消
+  7. **WebView 泄漏**：WebView 持有 Activity 引用
+
+  **内存泄漏检测工具**：
+  1. **Android Studio Profiler**：实时监控内存使用
+  2. **LeakCanary**：自动检测内存泄漏
+  3. **MAT（Memory Analyzer Tool）**：分析 hprof 文件
+  4. **StrictMode**：检测主线程违规操作
+
+  **内存泄漏修复示例**：
+  ```kotlin
+  // 错误示例：非静态内部类 Handler
+  class MyActivity : AppCompatActivity() {
+      private val handler = object : Handler(Looper.getMainLooper()) {
+          override fun handleMessage(msg: Message) {
+              // 持有外部类引用
+          }
+      }
+  }
+
+  // 正确示例：静态内部类 + 弱引用
+  class MyActivity : AppCompatActivity() {
+      private class SafeHandler(activity: MyActivity) : Handler(Looper.getMainLooper()) {
+          private val ref = WeakReference(activity)
+          override fun handleMessage(msg: Message) {
+              val activity = ref.get() ?: return
+              // 安全使用
+          }
+      }
+  }
+  ```
 
 - **Thread是如何造成内存泄露的，如何解决？**
 
@@ -1310,20 +1986,67 @@ tags : ["学习笔记", "Android"]
   2. 使用 WeakReference 持有外部类
   3. 在 onDestroy() 中终止线程
 
-- **Handler导致的内存泄露的原因以及如何解决**
-
-  原因：非静态内部类 Handler 持有外部类引用，Message 持有 Handler 引用。
-
-  解决方案：
-  1. 使用静态内部类 + WeakReference
-  2. 在 onDestroy() 中调用 `removeCallbacksAndMessages(null)`
-
 - **如何加载Bitmap防止内存溢出**
 
-  1. 使用 `inSampleSize` 采样压缩
-  2. 使用 `inBitmap` 复用内存
-  3. 选择合适的像素格式（RGB_565）
-  4. 使用图片加载库（Glide、Coil）
+  **Bitmap 内存计算**：
+  ```
+  内存 = 宽 × 高 × 每像素字节数
+  
+  示例：一张 1920×1080 的 ARGB_8888 图片
+  内存 = 1920 × 1080 × 4 = 8,294,400 字节 ≈ 7.9MB
+  ```
+
+  **内存优化方案**：
+
+  **1. 采样率压缩**：
+  ```kotlin
+  // 计算采样率
+  val options = BitmapFactory.Options().apply {
+      inJustDecodeBounds = true // 只读取尺寸，不加载到内存
+  }
+  BitmapFactory.decodeResource(resources, R.drawable.large_image, options)
+  
+  // 计算采样率（目标：缩小到 1/4）
+  options.inSampleSize = calculateInSampleSize(options, 480, 320)
+  options.inJustDecodeBounds = false
+  val bitmap = BitmapFactory.decodeResource(resources, R.drawable.large_image, options)
+  ```
+
+  **2. 使用 inBitmap 复用内存**：
+  ```kotlin
+  // 复用已有 Bitmap 的内存
+  val reusableBitmap = Bitmap.createBitmap(480, 320, Bitmap.Config.ARGB_8888)
+  val options = BitmapFactory.Options().apply {
+      inBitmap = reusableBitmap // 复用内存
+      inMutable = true
+  }
+  val newBitmap = BitmapFactory.decodeFile(filePath, options)
+  ```
+
+  **3. 选择合适的像素格式**：
+  | 格式 | 每像素字节数 | 适用场景 |
+  |------|------------|---------|
+  | ARGB_8888 | 4 字节 | 需要透明度 |
+  | RGB_565 | 2 字节 | 不需要透明度 |
+  | ALPHA_8 | 1 字节 | 只需要透明度 |
+
+  **4. 使用图片加载库**：
+  ```kotlin
+  // Glide 自动管理内存
+  Glide.with(context)
+      .load(url)
+      .override(300, 300) // 指定目标尺寸
+      .format(DecodeFormat.PREFER_RGB_565) // 使用 RGB_565
+      .into(imageView)
+  ```
+
+  **5. 及时回收**：
+  ```kotlin
+  // 不再使用时回收
+  if (!bitmap.isRecycled) {
+      bitmap.recycle()
+  }
+  ```
 
 - **MVP中如何处理Presenter层以防止内存泄漏的**
 
@@ -1335,43 +2058,246 @@ tags : ["学习笔记", "Android"]
 
 - **内存优化**
 
-  1. 避免内存泄漏（静态引用、内部类）
-  2. 使用 WeakReference、SoftReference
-  3. 及时释放资源（Cursor、Stream）
-  4. 使用 Profiler 分析内存
-  5. 优化 Bitmap 内存
+  **1. 内存泄漏检测与修复**：
+  - 使用 LeakCanary 自动检测内存泄漏
+  - 使用 Android Studio Profiler 分析内存使用
+  - 使用 MAT（Memory Analyzer Tool）分析 hprof 文件
+
+  **2. Bitmap 优化**：
+  - 使用 `inSampleSize` 降低采样率
+  - 使用 `inBitmap` 复用内存
+  - 选择合适的像素格式（RGB_565 替代 ARGB_8888）
+  - 使用 Glide/Coil 等图片库自动管理内存
+
+  **3. 数据结构优化**：
+  - 使用 `SparseArray` 替代 `HashMap<Integer, Object>`
+  - 使用 `ArrayMap` 替代 `HashMap`（小数据量场景）
+  - 避免在循环中创建临时对象
+
+  **4. 内存监控**：
+  ```kotlin
+  // 监控内存使用
+  val runtime = Runtime.getRuntime()
+  val usedMemory = runtime.totalMemory() - runtime.freeMemory()
+  val maxMemory = runtime.maxMemory()
+  Log.d("Memory", "Used: ${usedMemory / 1024 / 1024}MB, Max: ${maxMemory / 1024 / 1024}MB")
+  ```
 
 - **启动优化**
 
-  1. 减少 Application.onCreate() 工作
-  2. 延迟初始化
-  3. 使用 SplashScreen
-  4. 多线程初始化
-  5. 使用 App Startup 库
+  **1. 冷启动流程**（耗时最长）：
+  ```
+  点击图标 → fork Zygote 进程 → 创建 Application → 创建 Activity → 首帧绘制
+  |<---------- 冷启动（1-3秒）---------->|
+  ```
+
+  **2. 优化策略**：
+  - **异步初始化**：使用 App Startup 并行初始化无依赖的组件
+  - **延迟初始化**：非必要 SDK 使用 `IdleHandler` 在主线程空闲时初始化
+  - **减少 Application.onCreate() 工作量**
+  - **使用 SplashScreen**：Android 12+ 原生支持
+
+  **3. 启动时间测量**：
+  ```bash
+  # 测量启动时间
+  adb shell am start -W com.example.app/.MainActivity
+  
+  # 输出示例：
+  # TotalTime: 1200  # 冷启动总时间
+  # WaitTime: 1250   # 从启动到 Activity 可交互
+  ```
+
+  **4. 启动任务调度示例**：
+  ```kotlin
+  // 使用 App Startup
+  class MyInitializer : Initializer<Unit> {
+      override fun create(context: Context) {
+          // 初始化逻辑
+      }
+      override fun dependencies(): List<Class<out Initializer<*>>> {
+          return emptyList() // 无依赖，可并行初始化
+      }
+  }
+  
+  // 使用 IdleHandler 延迟初始化
+  Looper.myQueue().addIdleHandler {
+      initNonEssentialSDK() // 主线程空闲时执行
+      false // 只执行一次
+  }
+  ```
+
+  **启动优化详细方案**：
+
+  **1. 冷启动优化**：
+  - 使用 App Startup 库并行初始化组件
+  - 延迟非必要 SDK 初始化（如统计、推送）
+  - 使用 `ContentProvider` 自动初始化替代手动初始化
+  - 使用 `IdleHandler` 在主线程空闲时初始化
+
+  **2. 布局优化**：
+  - 使用 `ViewStub` 延迟加载非必要布局
+  - 使用 `ConstraintLayout` 减少布局层级
+  - 使用 `merge` 标签减少嵌套
+  - 异步加载布局（`AsyncLayoutInflater`）
+
+  **3. 启动任务调度**：
+  ```kotlin
+  // 使用 App Startup
+  class MyInitializer : Initializer<Unit> {
+      override fun create(context: Context) {
+          // 初始化逻辑
+      }
+      override fun dependencies(): List<Class<out Initializer<*>>> {
+          return emptyList()
+      }
+  }
+
+  // 使用 IdleHandler
+  Looper.myQueue().addIdleHandler {
+      // 主线程空闲时执行
+      false
+  }
+  ```
+
+  **4. 启动时间监控**：
+  - 使用 `adb shell am start -W` 测量启动时间
+  - 使用 Systrace 分析启动过程
+  - 使用 Android Studio Profiler 分析主线程
 
 - **布局加载和绘制优化**
 
-  1. 减少布局层级
-  2. 使用 ConstraintLayout
-  3. 使用 ViewStub 延迟加载
-  4. 使用 merge 标签
-  5. 避免过度绘制
+  **1. 布局层级优化**：
+  - 使用 `ConstraintLayout` 减少嵌套（扁平化布局）
+  - 使用 `merge` 标签减少层级
+  - 使用 `ViewStub` 延迟加载非必要布局
+
+  **2. 避免过度绘制**：
+  ```xml
+  <!-- 移除不必要的背景 -->
+  <LinearLayout
+      android:background="@null"  <!-- 移除默认背景 -->
+      ...>
+  ```
+
+  **3. 使用 ViewStub 延迟加载**：
+  ```xml
+  <ViewStub
+      android:id="@+id/stub_detail"
+      android:layout="@layout/layout_detail"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content" />
+  ```
+
+  ```kotlin
+  // 需要时才加载
+  val stub = findViewById<ViewStub>(R.id.stub_detail)
+  stub.inflate() // 此时才加载 layout_detail
+  ```
+
+  **4. 异步加载布局**：
+  ```kotlin
+  val asyncInflater = AsyncLayoutInflater(context)
+  asyncInflater.inflate(R.layout.complex_layout, parent) { view, _, parent ->
+      parent.addView(view) // 在主线程添加 View
+  }
+  ```
+
+  **5. 使用 merge 标签**：
+  ```xml
+  <!-- include_layout.xml -->
+  <merge xmlns:android="http://schemas.android.com/apk/res/android">
+      <TextView android:text="Hello" />
+      <TextView android:text="World" />
+  </merge>
+  
+  <!-- 使用时不会增加层级 -->
+  <include layout="@layout/include_layout" />
+  ```
 
 - **卡顿优化**
 
-  1. 避免主线程耗时操作
-  2. 使用 StrictMode 检测
-  3. 使用 Profiler 分析
-  4. 优化 RecyclerView
-  5. 使用 Choreographer 监控帧率
+  **1. 卡顿原理**：
+  - 主线程消息处理超过 16.6ms（60fps）会导致丢帧
+  - 超过 100ms 用户会感到明显卡顿
+  - 超过 500ms 会触发 ANR
+
+  **2. 检测方法**：
+  ```kotlin
+  // 使用 Choreographer 监控帧率
+  Choreographer.getInstance().postFrameCallback(object : Choreographer.FrameCallback {
+      var lastFrameTime = 0L
+      
+      override fun doFrame(frameTimeNanos: Long) {
+          if (lastFrameTime != 0L) {
+              val frameTimeMs = (frameTimeNanos - lastFrameTime) / 1_000_000
+              if (frameTimeMs > 16) {
+                  Log.w("Jank", "掉帧: ${frameTimeMs}ms")
+              }
+          }
+          lastFrameTime = frameTimeNanos
+          Choreographer.getInstance().postFrameCallback(this)
+      }
+  })
+  ```
+
+  **3. 优化策略**：
+  - **布局优化**：使用 ConstraintLayout 减少层级，使用 ViewStub 延迟加载
+  - **避免过度绘制**：移除不必要的背景，使用 `clipRect()` 局部刷新
+  - **异步处理**：耗时操作移到子线程，使用协程/RxJava
+  - **RecyclerView 优化**：使用 DiffUtil 局部刷新，设置 `setHasFixedSize(true)`
+
+  **4. Systrace 分析**：
+  ```bash
+  # 抓取 Systrace
+  python systrace.py -o trace.html gfx view input sched
+  
+  # 在 Chrome 中打开 trace.html 分析主线程耗时
+  ```
 
 - **网络优化**
 
-  1. 使用 HTTP/2
-  2. 启用 GZIP 压缩
-  3. 使用缓存
-  4. 减少请求次数
-  5. 使用 CDN
+  **1. 连接优化**：
+  - 使用 HTTP/2 多路复用，减少连接数
+  - 启用 GZIP 压缩，减少传输数据量
+  - 使用 DNS 预解析和连接复用
+
+  **2. 缓存策略**：
+  ```kotlin
+  // OkHttp 缓存配置
+  val client = OkHttpClient.Builder()
+      .cache(Cache(cacheDir, 10 * 1024 * 1024)) // 10MB 缓存
+      .build()
+  
+  // 设置缓存策略
+  val request = Request.Builder()
+      .url(url)
+      .cacheControl(CacheControl.FORCE_CACHE) // 优先使用缓存
+      .build()
+  ```
+
+  **3. 数据优化**：
+  - 压缩图片（WebP 格式比 PNG 小 25-34%）
+  - 使用 Protocol Buffers 替代 JSON（更小更快）
+  - 分页加载，减少单次请求数据量
+
+  **4. 网络监控**：
+  ```kotlin
+  // 使用 OkHttp EventListener 监控
+  val client = OkHttpClient.Builder()
+      .eventListenerFactory(object : EventListener.Factory() {
+          override fun create(call: Call): EventListener {
+              return object : EventListener() {
+                  override fun callStart(call: Call) {
+                      Log.d("Network", "请求开始")
+                  }
+                  override fun callEnd(call: Call) {
+                      Log.d("Network", "请求结束")
+                  }
+              }
+          }
+      })
+      .build()
+  ```
 
 ## 17.Window&WindowManager
 
@@ -1726,22 +2652,113 @@ tags : ["学习笔记", "Android"]
 
 - **插件化类加载原理**
 
-  1. 创建 DexClassLoader 加载插件 dex
-  2. 将插件 ClassLoader 添加到 PathClassLoader
-  3. 通过双亲委派机制加载类
+  **核心思路**：通过独立的 ClassLoader 加载插件的 dex 文件。
+
+  **类加载流程**：
+  ```
+  宿主 ClassLoader（PathClassLoader）
+       ↓ 双亲委派
+  BootClassLoader（加载系统类）
+       ↓ 委派失败
+  PathClassLoader（加载宿主类）
+       ↓ 委派失败
+  DexClassLoader（加载插件类）← 新增
+  ```
+
+  **实现代码**：
+  ```kotlin
+  // 1. 创建 DexClassLoader
+  val pluginClassLoader = DexClassLoader(
+      pluginApkPath,           // 插件 APK 路径
+      optimizedDirectory,      // dex 优化目录
+      null,                    // native library 路径
+      hostClassLoader          // 宿主 ClassLoader
+  )
+  
+  // 2. 加载插件类
+  val pluginActivityClass = pluginClassLoader.loadClass("com.example.PluginActivity")
+  
+  // 3. 创建实例
+  val pluginActivity = pluginActivityClass.newInstance() as Activity
+  ```
+
+  **类加载器层级**：
+  | ClassLoader | 加载内容 | 说明 |
+  |-------------|---------|------|
+  | BootClassLoader | 系统核心类 | `java.lang.*`、`android.*` |
+  | PathClassLoader | 应用 dex | 已安装的 APK |
+  | DexClassLoader | 插件 dex | 动态加载的插件 |
 
 - **插件化资源加载原理**
 
-  1. 创建 AssetManager 加载插件资源
-  2. 创建 Resources 包装 AssetManager
-  3. 合并宿主和插件资源
+  **核心思路**：通过反射创建 AssetManager，加载插件资源。
+
+  **资源加载流程**：
+  ```kotlin
+  // 1. 创建 AssetManager
+  val assetManager = AssetManager::class.java.newInstance()
+  
+  // 2. 反射调用 addAssetPath 加载插件资源
+  val addAssetPath = AssetManager::class.java.getDeclaredMethod("addAssetPath", String::class.java)
+  addAssetPath.isAccessible = true
+  addAssetPath.invoke(assetManager, pluginApkPath)
+  
+  // 3. 创建 Resources
+  val pluginResources = Resources(
+      assetManager,
+      context.resources.displayMetrics,
+      context.resources.configuration
+  )
+  
+  // 4. 使用插件资源
+  val drawable = pluginResources.getDrawable(R.drawable.plugin_image)
+  ```
+
+  **资源合并策略**：
+  | 策略 | 说明 |
+  |------|------|
+  | 资源 ID 冲突 | 修改插件资源 ID 前缀 |
+  | 资源合并 | 合并宿主和插件资源表 |
+  | 独立加载 | 插件独立使用自己的资源 |
 
 - **插件化Activity加载原理**
 
+  **核心思路**：预注册占位 Activity，启动时动态替换。
+
+  **Activity 加载流程**：
+  ```
   1. 预注册占位 Activity
+     <activity android:name=".PlaceholderActivity" />
+       ↓
   2. 启动占位 Activity
-  3. 在占位 Activity 中加载真正的 Activity
+     startActivity(Intent(this, PlaceholderActivity::class.java))
+       ↓
+  3. 在占位 Activity 中加载真正的插件 Activity
+     val pluginActivity = loadPluginActivity("com.example.PluginActivity")
+       ↓
   4. 替换生命周期回调
+     pluginActivity.setDelegate(placeholderActivity)
+  ```
+
+  **实现代码**：
+  ```kotlin
+  class PlaceholderActivity : AppCompatActivity() {
+      override fun onCreate(savedInstanceState: Bundle?) {
+          super.onCreate(savedInstanceState)
+          
+          // 加载插件 Activity
+          val pluginClassName = intent.getStringExtra("plugin_activity")
+          val pluginActivityClass = pluginClassLoader.loadClass(pluginClassName)
+          val pluginActivity = pluginActivityClass.newInstance() as Activity
+          
+          // 替换 Context 和生命周期
+          pluginActivity.attach(this)
+          
+          // 显示插件 Activity 的布局
+          setContentView(pluginActivity.delegate.layoutInflater.inflate(R.layout.plugin_layout, null))
+      }
+  }
+  ```
 
 - **热修复和插件化区别**
 
@@ -1753,9 +2770,47 @@ tags : ["学习笔记", "Android"]
 
 - **热修复原理**
 
-  1. **类加载方案**：将修复的类放在 dex 前面，优先加载
-  2. **底层替换方案**：替换 ArtMethod
-  3. **Instant Run 方案**：参考 Instant Run 机制
+  热修复是在不重新安装 APK 的情况下修复 Bug 的技术。
+
+  **三大方案对比**：
+  | 方案 | 代表框架 | 原理 | 优缺点 |
+  |------|---------|------|--------|
+  | 类加载方案 | Tinker、AndFix | 将修复的类放在 dex 前面，优先加载 | 需要重启生效，兼容性好 |
+  | 底层替换方案 | AndFix | 替换 ArtMethod | 无需重启，但兼容性差 |
+  | Instant Run 方案 | Robust | 参考 Instant Run 机制 | 兼容性好，但体积大 |
+
+  **1. 类加载方案（Tinker）**：
+  ```
+  原始 dex：A.class → B.class → C.class（B 有 Bug）
+  
+  修复后 dex：B'.class → A.class → C.class（B' 修复 Bug）
+  
+  加载顺序：B'.class → A.class → C.class（B' 优先加载）
+  ```
+
+  **2. 底层替换方案（AndFix）**：
+  ```
+  替换 ArtMethod 结构体中的方法指针
+  原方法：nativeFunc → 原实现
+  新方法：nativeFunc → 修复实现
+  ```
+
+  **3. Instant Run 方案（Robust）**：
+  ```
+  原始代码：
+  public void onClick() {
+      // 业务逻辑
+  }
+  
+  增强后代码：
+  public void onClick() {
+      if (changeQuickRedirect != null) {
+          changeQuickRedirect.accessDispatch(...);
+          return;
+      }
+      // 原始业务逻辑
+  }
+  ```
 
 ## 25.AOP
 
@@ -1791,63 +2846,232 @@ tags : ["学习笔记", "Android"]
 
 - **Navigation**
 
-  Navigation 是 Jetpack 的导航组件：
-  - 管理 Fragment 切换
-  - 支持深链接
-  - 支持动画过渡
-  - 支持参数传递
+  Navigation 是 Jetpack 的导航组件，用于管理 Fragment 切换。
+
+  **核心组件**：
+  | 组件 | 说明 |
+  |------|------|
+  | `NavHostFragment` | 导航宿主，显示 Fragment |
+  | `NavController` | 导航控制器，管理导航操作 |
+  | `NavGraph` | 导航图，定义所有目的地 |
+  | `NavDestination` | 目的地，每个 Fragment 是一个目的地 |
+
+  **使用方式**：
+  ```kotlin
+  // 1. 在 XML 中配置 NavHostFragment
+  <androidx.fragment.app.FragmentContainerView
+      android:id="@+id/nav_host"
+      android:name="androidx.navigation.fragment.NavHostFragment"
+      app:navGraph="@navigation/nav_graph"
+      app:defaultNavHost="true" />
+  
+  // 2. 在 Activity 中获取 NavController
+  val navHostFragment = supportFragmentManager
+      .findFragmentById(R.id.nav_host) as NavHostFragment
+  val navController = navHostFragment.navController
+  
+  // 3. 导航
+  navController.navigate(R.id.action_home_to_detail)
+  
+  // 4. 带参数导航
+  val bundle = bundleOf("userId" to 123)
+  navController.navigate(R.id.action_home_to_detail, bundle)
+  ```
 
 - **DataBinding**
 
-  DataBinding 是数据绑定库：
-  - 将数据绑定到 XML 布局
-  - 减少样板代码
-  - 支持双向绑定
-  - 支持表达式
+  DataBinding 是数据绑定库，支持将数据绑定到 XML 布局。
 
-- **Viewmodel**
+  **启用 DataBinding**：
+  ```gradle
+  android {
+      dataBinding {
+          enabled = true
+      }
+  }
+  ```
 
-  ViewModel 是管理 UI 数据的组件：
-  - 生命周期感知
-  - 配置变更时保留数据
-  - 与 LiveData 配合使用
+  **使用方式**：
+  ```xml
+  <!-- layout -->
+  <layout>
+      <data>
+          <variable name="user" type="com.example.User" />
+      </data>
+      <LinearLayout>
+          <TextView android:text="@{user.name}" />
+          <TextView android:text="@{user.age.toString()}" />
+      </LinearLayout>
+  </layout>
+  ```
 
-- **livedata**
+  ```kotlin
+  // Activity 中绑定数据
+  val binding = ActivityMainBinding.inflate(layoutInflater)
+  binding.user = User("张三", 25)
+  binding.lifecycleOwner = this // 使 DataBinding 支持 LiveData
+  ```
 
-  LiveData 是可观察的数据持有者：
-  - 生命周期感知
-  - 自动取消订阅
-  - 避免内存泄漏
+  **双向绑定**：
+  ```xml
+  <EditText android:text="@={user.name}" />
+  ```
 
-- **liferecycle**
+- **ViewModel**
 
-  Lifecycle 是生命周期管理组件：
-  - 感知 Activity/Fragment 生命周期
-  - 自动管理资源
-  - 与 LiveData、ViewModel 配合
+  ViewModel 是管理 UI 数据的组件，生命周期感知。
+
+  **核心特性**：
+  - **生命周期感知**：在配置变更（如旋转屏幕）时保留数据
+  - **作用域**：与 Activity/Fragment 生命周期绑定
+  - **数据共享**：同一 Activity 中的多个 Fragment 可共享 ViewModel
+
+  **使用方式**：
+  ```kotlin
+  class UserViewModel : ViewModel() {
+      private val _users = MutableLiveData<List<User>>()
+      val users: LiveData<List<User>> = _users
+      
+      fun loadUsers() {
+          viewModelScope.launch {
+              _users.value = repository.getUsers()
+          }
+      }
+  }
+  
+  // Activity 中获取
+  val viewModel: UserViewModel by viewModels()
+  viewModel.users.observe(this) { users ->
+      // 更新 UI
+  }
+  ```
+
+- **LiveData**
+
+  LiveData 是可观察的数据持有者，生命周期感知。
+
+  **核心特性**：
+  - **生命周期感知**：只有 Activity/Fragment 处于 STARTED 或 RESUMED 状态时才会更新
+  - **自动取消订阅**：Activity/Fragment 销毁时自动取消订阅
+  - **避免内存泄漏**：不会持有 Activity/Fragment 的强引用
+
+  **使用方式**：
+  ```kotlin
+  // 在 ViewModel 中
+  val userName: LiveData<String> = MutableLiveData("张三")
+  
+  // 在 Activity 中观察
+  viewModel.userName.observe(this) { name ->
+      textView.text = name
+  }
+  
+  // 转换数据
+  val userNameLength: LiveData<Int> = Transformations.map(userName) { it.length }
+  ```
+
+- **Lifecycle**
+
+  Lifecycle 是生命周期管理组件，自动感知 Activity/Fragment 生命周期。
+
+  **使用方式**：
+  ```kotlin
+  class MyLifecycleObserver : LifecycleObserver {
+      @OnLifecycleEvent(Lifecycle.Event.ON_START)
+      fun onStart() {
+          // Activity 启动时执行
+      }
+      
+      @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
+      fun onStop() {
+          // Activity 停止时执行
+      }
+  }
+  
+  // 在 Activity 中注册
+  lifecycle.addObserver(MyLifecycleObserver())
+  ```
 
 ## 27.开源框架
 
 - **Okhttp源码流程,线程池**
 
-  流程：
-  1. 构建 Request
-  2. 通过 Dispatcher 调度请求
-  3. 通过拦截器链处理请求
-  4. 通过连接池获取连接
-  5. 发送请求并接收响应
+  **请求流程**：
+  ```
+  构建 Request
+       ↓
+  OkHttpClient.newCall()
+       ↓
+  Dispatcher 调度（异步/同步）
+       ↓
+  拦截器链处理
+  ├── RetryAndFollowUpInterceptor（重试）
+  ├── BridgeInterceptor（请求头处理）
+  ├── CacheInterceptor（缓存）
+  ├── ConnectInterceptor（连接）
+  ├── [网络拦截器]
+  └── CallServerInterceptor（发送）
+       ↓
+  通过连接池获取/创建连接
+       ↓
+  发送请求并接收响应
+  ```
 
-  线程池：
-  - 核心线程数：0
-  - 最大线程数：64
-  - 空闲存活时间：60 秒
+  **Dispatcher 线程池**：
+  ```kotlin
+  // Dispatcher 核心参数
+  class Dispatcher {
+      // 最大并发请求数：64
+      private val maxRequests = 64
+      // 每个主机最大并发请求数：5
+      private val maxRequestsPerHost = 5
+      // 空闲线程存活时间：60 秒
+      private val keepAliveTime = 60L
+      
+      // 线程池配置
+      executorService = ThreadPoolExecutor(
+          0,                    // 核心线程数
+          Int.MAX_VALUE,        // 最大线程数
+          60L, TimeUnit.SECONDS,
+          SynchronousQueue(),   // 无界队列
+          threadFactory("OkHttp Dispatcher", false)
+      )
+  }
+  ```
 
 - **Okhttp拦截器,addInterceptor 和 addNetworkdInterceptor区别**
 
   - `addInterceptor`：应用拦截器，最先执行
   - `addNetworkInterceptor`：网络拦截器，在连接前执行
 
-  区别：应用拦截器可以修改请求，网络拦截器只能观察。
+  **拦截器执行顺序**：
+  ```
+  应用拦截器（addInterceptor）
+    ↓
+  RetryAndFollowUpInterceptor（重试和重定向）
+    ↓
+  BridgeInterceptor（请求头处理）
+    ↓
+  CacheInterceptor（缓存处理）
+    ↓
+  ConnectInterceptor（连接建立）
+    ↓
+  网络拦截器（addNetworkInterceptor）
+    ↓
+  CallServerInterceptor（发送请求）
+  ```
+
+  **区别详解**：
+  | 特性 | 应用拦截器 | 网络拦截器 |
+  |------|-----------|-----------|
+  | 执行时机 | 最先执行 | 连接前执行 |
+  | 可修改请求 | 是 | 否（只能观察） |
+  | 重试时调用 | 只调用一次 | 每次重试都调用 |
+  | 缓存响应 | 可能 | 不会 |
+  | 适用场景 | 添加公共参数、日志 | 监控网络请求 |
+
+  **使用场景**：
+  - 应用拦截器：添加 Token、日志记录、统一错误处理
+  - 网络拦截器：监控请求耗时、记录请求/响应内容
 
 - **Okhttp责任链模式**
 
@@ -1860,9 +3084,54 @@ tags : ["学习笔记", "Android"]
 
 - **Okhttp缓存怎么处理**
 
-  1. CacheInterceptor 处理缓存
-  2. 根据 Cache-Control 决定是否使用缓存
-  3. 缓存策略：网络优先、缓存优先
+  **缓存流程**：
+  ```
+  请求 → CacheInterceptor
+       ↓
+  检查缓存是否存在且有效（根据 Cache-Control、Expires）
+       ↓
+  有效 → 直接返回缓存
+  无效 → 继续网络请求
+       ↓
+  响应返回 → CacheInterceptor 判断是否缓存
+       ↓
+  缓存 → 存储到 Cache
+  不缓存 → 直接返回
+  ```
+
+  **缓存配置**：
+  ```kotlin
+  // 设置缓存目录和大小
+  val cache = Cache(cacheDir, 10 * 1024 * 1024) // 10MB
+  
+  // 请求级别缓存控制
+  val request = Request.Builder()
+      .url(url)
+      .cacheControl(CacheControl.Builder()
+          .maxAge(5, TimeUnit.MINUTES) // 缓存有效期 5 分钟
+          .build())
+      .build()
+  
+  // 强制使用网络
+  val networkRequest = Request.Builder()
+      .url(url)
+      .cacheControl(CacheControl.FORCE_NETWORK)
+      .build()
+  
+  // 强制使用缓存
+  val cacheRequest = Request.Builder()
+      .url(url)
+      .cacheControl(CacheControl.FORCE_CACHE)
+      .build()
+  ```
+
+  **缓存响应头**：
+  | 头部 | 说明 | 示例 |
+  |------|------|------|
+  | `Cache-Control` | 缓存控制策略 | `max-age=3600`（1小时内有效） |
+  | `ETag` | 资源标识符 | `"abc123"` |
+  | `Last-Modified` | 最后修改时间 | `Thu, 01 Jan 2024 00:00:00 GMT` |
+  | `Expires` | 过期时间（HTTP/1.0） | `Thu, 01 Jan 2024 01:00:00 GMT` |
 
 - **Okhttp连接池和socket复用**
 
@@ -1873,20 +3142,127 @@ tags : ["学习笔记", "Android"]
 
 - **Glide怎么绑定生命周期**
 
-  1. 通过 RequestManager 感知生命周期
-  2. Activity/Fragment 销毁时自动取消请求
-  3. 使用 Lifecycle 组件
+  **原理**：Glide 通过在 Activity/Fragment 中添加一个隐藏的空 Fragment 来感知生命周期。
+
+  **绑定流程**：
+  1. `Glide.with(activity)` → 创建 `RequestManagerRetriever`
+  2. 检查是否在主线程
+  3. 获取当前 Activity/Fragment 的 `FragmentManager`
+  4. 如果没有 `RequestManagerFragment`（隐藏的空 Fragment），则添加
+  5. `RequestManagerFragment` 内部持有 `SupportRequestManagerFragment`，监听生命周期
+  6. 根据生命周期状态管理图片加载请求
+
+  **生命周期绑定**：
+  ```kotlin
+  // Glide.with() 会自动绑定生命周期
+  Glide.with(activity) // 绑定 Activity 生命周期
+       .load(url)
+       .into(imageView)
+  
+  Glide.with(fragment) // 绑定 Fragment 生命周期
+       .load(url)
+       .into(imageView)
+  
+  Glide.with(context.applicationContext) // 绑定应用生命周期（不推荐）
+       .load(url)
+       .into(imageView)
+  ```
+
+  **生命周期管理**：
+  | 生命周期状态 | Glide 行为 |
+  |------------|-----------|
+  | `onStart()` | 恢复暂停的请求 |
+  | `onStop()` | 暂停所有请求 |
+  | `onDestroy()` | 取消所有请求 |
 
 - **Glide缓存机制,内存缓存，磁盘缓存**
 
-  内存缓存：
-  - ActiveResources：正在使用的资源
-  - LruResourceCache：最近使用的资源
+  **三级缓存架构**：
+  ```
+  ActiveResources（弱引用，正在使用）
+       ↓ 未命中
+  LruResourceCache（LRU，最近使用）
+       ↓ 未命中
+  磁盘缓存（Resource → Data）
+       ↓ 未命中
+  网络下载
+  ```
 
-  磁盘缓存：
-  - Data：原始数据
-  - Resource：解码后的资源
-  - Transformed：变换后的资源
+  **内存缓存**：
+  | 缓存类型 | 数据结构 | 默认大小 | 淘汰策略 | 说明 |
+  |---------|---------|---------|---------|------|
+  | ActiveResources | WeakHashMap | 无限 | GC 回收 | 正在显示的图片 |
+  | LruResourceCache | LinkedHashMap | 屏幕宽×屏幕高×4字节 | LRU | 最近使用的图片 |
+
+  **磁盘缓存**：
+  | 缓存目录 | 存储内容 | 默认大小 | 说明 |
+  |---------|---------|---------|------|
+  | `Data` | 原始数据（未解码） | - | 网络下载的原始文件 |
+  | `Resource` | 解码后的资源 | 250MB | 解码后的 Bitmap |
+  | `Transformed` | 变换后的资源 | - | 圆角、裁剪等变换后 |
+
+  **缓存 Key 生成**：
+  ```kotlin
+  // Key 由以下因素决定
+  val cacheKey = CacheKeyGenerator.generateKey(
+      url,           // 图片 URL
+      width,         // 目标宽度
+      height,        // 目标高度
+      transformation, // 变换类型
+      resourceType,  // 资源类型
+      encoder        // 编码器
+  )
+  ```
+
+  **缓存配置**：
+  ```kotlin
+  Glide.with(context)
+      .load(url)
+      .skipMemoryCache(false) // 启用内存缓存（默认 true）
+      .diskCacheStrategy(DiskCacheStrategy.ALL) // 缓存原始和变换后资源
+      .override(300, 300) // 指定目标尺寸（影响缓存 Key）
+      .into(imageView)
+  ```
+
+  **DiskCacheStrategy 选项**：
+  | 策略 | 说明 |
+  |------|------|
+  | `NONE` | 不使用磁盘缓存 |
+  | `DATA` | 只缓存原始数据 |
+  | `RESOURCE` | 只缓存解码后的资源 |
+  | `ALL` | 缓存原始数据和解码后的资源 |
+  | `AUTOMATIC` | 根据策略自动选择（默认） |
+  1. 检查 ActiveResources（正在使用）
+     ↓ 命中
+  2. 检查 LruResourceCache（内存缓存）
+     ↓ 命中
+  3. 检查磁盘缓存（Resource -> Data）
+     ↓ 命中
+  4. 从网络下载
+  ```
+
+  **缓存策略详解**：
+  | 缓存类型 | 存储位置 | 默认大小 | 淘汰策略 |
+  |---------|---------|---------|---------|
+  | ActiveResources | 内存 | 无限 | 弱引用，GC 回收 |
+  | LruResourceCache | 内存 | 屏幕宽×屏幕高×4字节 | LRU 淘汰 |
+  | 磁盘缓存 | 文件 | 250MB | LRU 淘汰 |
+
+  **Glide 缓存 Key 生成**：
+  - URL
+  - 宽度、高度
+  - 变换类型
+  - 资源类型
+  - 策略配置
+
+  **缓存配置**：
+  ```kotlin
+  Glide.with(context)
+      .load(url)
+      .skipMemoryCache(false) // 启用内存缓存
+      .diskCacheStrategy(DiskCacheStrategy.ALL) // 缓存原始和变换后资源
+      .into(imageView)
+  ```
 
 - **Glide与Picasso的区别**
 
@@ -1906,37 +3282,220 @@ tags : ["学习笔记", "Android"]
 
 - **Retrofit源码流程,动态代理**
 
-  流程：
+  **流程详解**：
   1. 定义接口
   2. Retrofit.create() 使用动态代理
   3. 解析注解生成 ServiceMethod
   4. 通过 OkHttp 发送请求
 
-  动态代理：`Proxy.newProxyInstance()` 创建接口代理。
+  **动态代理实现**：
+  ```java
+  public <T> T create(final Class<T> service) {
+      return (T) Proxy.newProxyInstance(
+          service.getClassLoader(),
+          new Class<?>[] { service },
+          new InvocationHandler() {
+              @Override
+              public Object invoke(Object proxy, Method method, Object[] args) {
+                  // 解析方法注解
+                  ServiceMethod<Object, Object> serviceMethod =
+                      (ServiceMethod<Object, Object>) loadServiceMethod(method);
+                  // 创建 OkHttpCall
+                  OkHttpCall<Object> okHttpCall =
+                      new OkHttpCall<>(serviceMethod, args);
+                  // 执行请求
+                  return serviceMethod.adapt(okHttpCall);
+              }
+          });
+  }
+  ```
+
+  **ServiceMethod 生成流程**：
+  1. 解析方法注解（@GET、@POST 等）
+  2. 解析参数注解（@Query、@Body 等）
+  3. 生成完整 URL
+  4. 创建 CallAdapter
+  5. 创建 ResponseConverter
+
+  **Retrofit 核心组件**：
+  | 组件 | 作用 |
+  |------|------|
+  | ServiceMethod | 解析接口方法 |
+  | CallAdapter | 适配不同异步框架 |
+  | Converter | 数据转换（Gson、Moshi） |
+  | OkHttpCall | 执行 HTTP 请求 |
+
+  **Retrofit 注解处理**：
+  ```kotlin
+  interface ApiService {
+      @GET("users/{id}")
+      suspend fun getUser(@Path("id") id: Int): User
+
+      @POST("users")
+      suspend fun createUser(@Body user: User): User
+  }
+  ```
 
 - **LeakCanary弱引用,源码流程**
 
-  原理：
+  **LeakCanary 原理**：基于弱引用 + 引用队列自动检测内存泄漏。
+
+  **检测流程**：
+  ```
   1. 监控 Activity/Fragment 销毁
-  2. 使用 WeakReference 持有对象
-  3. 检测弱引用是否被回收
-  4. 未回收则 dump 内存分析
+       ↓
+  2. 将被监控对象包装为 KeyedWeakReference（弱引用）
+       ↓
+  3. 将弱引用添加到 ReferenceQueue
+       ↓
+  4. 等待 5 秒后触发 GC
+       ↓
+  5. 检查 ReferenceQueue 中是否有未被回收的弱引用
+       ↓
+  6. 如果有 → 说明发生内存泄漏
+       ↓
+  7. Dump hprof 文件并分析引用链
+  ```
+
+  **使用方式**：
+  ```kotlin
+  // 添加依赖
+  implementation("com.squareup.leakcanary:leakcanary-android:2.12")
+  
+  // 初始化（Application 中）
+  class MyApplication : Application() {
+      override fun onCreate() {
+          super.onCreate()
+          // LeakCanary 自动初始化，无需手动配置
+      }
+  }
+  ```
+
+  **泄漏分析**：
+  - LeakCanary 会自动弹出通知显示泄漏信息
+  - 使用 Android Studio 打开 `.hprof` 文件分析引用链
+  - 常见泄漏原因：静态变量、Handler、匿名内部类、注册未注销
 
 - **Eventbus**
 
-  EventBus 是事件总线：
-  1. 注册订阅者
-  2. 发送事件
-  3. 接收事件
-  4. 支持线程切换
+  **EventBus 核心组件**：
+  | 组件 | 说明 |
+  |------|------|
+  | `Event` | 事件对象，可以是任意类型 |
+  | `Subscriber` | 订阅者，使用 `@Subscribe` 注解的方法 |
+  | `Publisher` | 发布者，调用 `EventBus.getDefault().post()` |
+  | `EventBus` | 单例，管理订阅和分发 |
+
+  **使用方式**：
+  ```kotlin
+  // 1. 定义事件
+  class MessageEvent(val message: String)
+  
+  // 2. 注册订阅者
+  class MyActivity : AppCompatActivity() {
+      override fun onStart() {
+          super.onStart()
+          EventBus.getDefault().register(this)
+      }
+      
+      override fun onStop() {
+          super.onStop()
+          EventBus.getDefault().unregister(this)
+      }
+      
+      // 3. 订阅事件（线程模式）
+      @Subscribe(threadMode = ThreadMode.MAIN)
+      fun onMessageEvent(event: MessageEvent) {
+          // 主线程处理
+      }
+      
+      @Subscribe(threadMode = ThreadMode.BACKGROUND)
+      fun onBackgroundEvent(event: MessageEvent) {
+          // 后台线程处理
+      }
+  }
+  
+  // 4. 发布事件
+  EventBus.getDefault().post(MessageEvent("Hello"))
+  ```
+
+  **线程模式**：
+  | 模式 | 说明 |
+  |------|------|
+  | `MAIN` | 主线程执行 |
+  | `MAIN_ORDERED` | 主线程，有序执行 |
+  | `POSTING` | 发布者线程执行 |
+  | `BACKGROUND` | 后台线程执行 |
+  | `ASYNC` | 异步线程执行 |
+
+  **粘性事件**：
+  ```kotlin
+  // 发送粘性事件
+  EventBus.getDefault().postSticky(MessageEvent("Sticky"))
+  
+  // 订阅粘性事件
+  @Subscribe(sticky = true)
+  fun onStickyEvent(event: MessageEvent) {
+      // 接收粘性事件
+  }
+  ```
 
 - **Rxjava**
 
-  RxJava 是响应式编程库：
-  1. Observable：被观察者
-  2. Observer：观察者
-  3. Scheduler：线程调度
-  4. 操作符：数据变换
+  **RxJava 核心概念**：
+  | 概念 | 说明 | 示例 |
+  |------|------|------|
+  | `Observable` | 被观察者/数据源 | `Observable.just("Hello")` |
+  | `Observer` | 观察者/数据消费者 | `Observer<String> { ... }` |
+  | `Disposable` | 订阅关系，用于取消订阅 | `compositeDisposable.add(disposable)` |
+  | `Scheduler` | 线程调度器 | `Schedulers.io()`、`AndroidSchedulers.mainThread()` |
+  | `Operator` | 数据变换操作符 | `map`、`flatMap`、`filter` |
+
+  **线程调度器**：
+  | Scheduler | 线程 | 用途 |
+  |-----------|------|------|
+  | `Schedulers.io()` | IO 线程池 | 网络请求、文件操作 |
+  | `Schedulers.computation()` | 计算线程池 | CPU 密集型操作 |
+  | `Schedulers.newThread()` | 新线程 | 单个耗时操作 |
+  | `AndroidSchedulers.mainThread()` | 主线程 | UI 更新 |
+
+  **常用操作符**：
+  ```kotlin
+  // map：转换数据类型
+  Observable.just(1, 2, 3)
+      .map { it * 2 }
+      .subscribe { println(it) } // 2, 4, 6
+  
+  // flatMap：异步操作（不保证顺序）
+  Observable.just(url)
+      .flatMap { api.getData(it) }
+      .subscribe { data -> updateUI(data) }
+  
+  // concatMap：异步操作（保证顺序）
+  Observable.just(url)
+      .concatMap { api.getData(it) }
+      .subscribe { data -> updateUI(data) }
+  
+  // filter：过滤数据
+  Observable.just(1, 2, 3, 4, 5)
+      .filter { it > 3 }
+      .subscribe { println(it) } // 4, 5
+  
+  // debounce：防抖（常用于搜索）
+  searchEditText.textChanges()
+      .debounce(300, TimeUnit.MILLISECONDS)
+      .switchMap { api.search(it) }
+      .subscribe { results -> updateResults(results) }
+  ```
+
+  **RxJava vs 协程**：
+  | 特性 | RxJava | 协程 |
+  |------|--------|------|
+  | 学习曲线 | 陡峭 | 平缓 |
+  | 代码量 | 较多 | 较少 |
+  | 调试难度 | 较难 | 较易 |
+  | 背压支持 | 支持 | Flow 支持 |
+  | 推荐程度 | 旧项目 | 新项目推荐 |
 
 # 2023最新Android中高级面试题汇总+解析
 
