@@ -9,7 +9,51 @@ tags : ["GoLang"]
 
 # Go ——设计模式
 
-## simple_factory 简单工厂
+## 引言
+
+设计模式（Design Pattern）是软件开发中经过反复验证的最佳实践，用于解决特定场景下的常见问题。Go 语言以其简洁的语法、强大的并发支持和丰富的标准库，非常适合实践经典设计模式。
+
+Go 的设计模式特点：
+- **接口隐式实现**：Go 的接口是隐式实现的，无需显式声明 `implements`，这使得解耦更加自然
+- **组合优于继承**：Go 没有继承，通过结构体嵌入（Embedding）实现组合，更符合大多数设计模式的思想
+- **goroutine 与 channel**：Go 的并发原语为观察者、中介者等模式提供了新的实现思路
+
+本文档涵盖 GoF（Gang of Four）提出的 23 种经典设计模式，按创建型、结构型、行为型三大类组织，每种模式包含定义、使用场景、经典案例、Go 实现代码和单元测试。
+
+---
+
+## 设计模式分类总览
+
+| 分类 | 序号 | 模式名称 | 核心思想 |
+|------|------|----------|----------|
+| **创建型** | 1 | 简单工厂 | 由工厂方法根据参数决定创建哪个产品 |
+| **创建型** | 2 | 工厂方法 | 将对象创建延迟到子类 |
+| **创建型** | 3 | 抽象工厂 | 创建一系列相关产品的接口 |
+| **创建型** | 4 | 单例模式 | 确保一个类只有一个实例 |
+| **创建型** | 5 | 建造者模式 | 分步构建复杂对象 |
+| **创建型** | 6 | 原型模式 | 通过拷贝创建新对象 |
+| **结构型** | 7 | 门面模式 | 为子系统提供统一入口 |
+| **结构型** | 8 | 适配器模式 | 将不兼容的接口转换为兼容接口 |
+| **结构型** | 9 | 代理模式 | 为对象提供代理以控制访问 |
+| **结构型** | 10 | 装饰器模式 | 动态地为对象添加职责 |
+| **结构型** | 11 | 桥接模式 | 将抽象与实现分离 |
+| **结构型** | 12 | 组合模式 | 将对象组合成树形结构 |
+| **结构型** | 13 | 享元模式 | 通过共享技术支持大量细粒度对象 |
+| **行为型** | 14 | 观察者模式 | 一对多的依赖通知机制 |
+| **行为型** | 15 | 解释器模式 | 定义语言文法并解释执行 |
+| **行为型** | 16 | 模板方法 | 定义算法骨架，子类实现具体步骤 |
+| **行为型** | 17 | 责任链模式 | 请求沿链传递直到被处理 |
+| **行为型** | 18 | 状态模式 | 状态改变时行为随之改变 |
+| **行为型** | 19 | 备忘录模式 | 保存和恢复对象内部状态 |
+| **行为型** | 20 | 迭代器模式 | 统一遍历聚合对象 |
+| **行为型** | 21 | 访问者模式 | 在不改变类的前提下定义新操作 |
+| **行为型** | 22 | 命令模式 | 将请求封装为对象 |
+| **行为型** | 23 | 中介者模式 | 用中介封装对象间交互 |
+| **行为型** | 24 | 策略模式 | 封装可互换的算法 |
+
+---
+
+## 1. simple_factory 简单工厂
 
 ### 定义
 定义一个创建对象的接口，但由子类决定要实例化的类是哪一个。工厂方法让类的实例化延迟到子类。
@@ -99,269 +143,7 @@ func TestGreeting(t *testing.T) {
 
 ```
 
-## facade 门面模式
-
-### 定义
-为子系统中的一组接口提供一个统一的接口。门面模式定义了一个高层接口，使得子系统更容易使用。
-
-### 使用场景
-- 为复杂子系统提供一个简单入口
-- 客户端与多个子系统存在强依赖，希望解耦
-- 构建分层系统时，作为每层的入口点
-
-### 经典案例
-- **Go `net/http`**：`http.HandleFunc()` 和 `http.ListenAndServe()` 封装了底层的 ServeMux、Listener、Server 等
-- **SLF4J**：Java 的日志门面，统一了 log4j、logback、java.util.logging 等日志框架
-- **RESTful API**：Controller 层作为 Service 层的门面
-- **复杂库的 API**：提供简洁的 API 隐藏复杂的内部实现
-
-### 代码
-
-```go
-package test
-
-type API interface {
-	Test() string
-}
-
-func NewAPI() API {
-	return &apiImpl{
-		a: NewAImpl(),
-		b: NewBImpl(),
-	}
-}
-
-type apiImpl struct {
-	a AModule
-	b BModule
-}
-
-func (api *apiImpl) Test() string {
-	// 把两部分结果拼接返回
-	return api.a.TestA() + api.b.TestB()
-}
-
-// --- AModule ---
-
-type AModule interface {
-	TestA() string
-}
-
-type AImpl struct{}
-
-func NewAImpl() AModule {
-	return &AImpl{}
-}
-
-func (a *AImpl) TestA() string {
-	return "testA ... "
-}
-
-// --- BModule ---
-
-type BModule interface {
-	TestB() string
-}
-
-type BImpl struct{}
-
-func NewBImpl() BModule {
-	return &BImpl{}
-}
-
-func (b *BImpl) TestB() string {
-	return "testB ... "
-}
-
-```
-
-```go
-package test
-
-import "testing"
-
-func TestFacade(t *testing.T) {
-	api := NewAPI()
-	out := api.Test()
-	expected := "testA ... testB ... "
-
-	if out != expected {
-		t.Errorf("API Test() = %q, want %q", out, expected)
-	}
-}
-
-```
-
-## adapter 适配器
-
-### 定义
-将一个类的接口转换成客户希望的另一个接口。适配器模式让那些接口不兼容的类可以一起工作。
-
-### 使用场景
-- 想使用一个已存在的类，但其接口不符合需求
-- 想创建一个可复用的类，与不兼容接口的类协同工作
-- 需要适配多个版本或多种实现
-
-### 经典案例
-- **Go `io` 包**：`io.Copy()` 接受 `io.Reader` 和 `io.Writer`，通过适配器模式将不同类型的数据源统一
-- **JDBC 驱动**：每个数据库提供 JDBC 适配器，应用程序统一通过 JDBC 接口操作不同数据库
-- **充电器转换头**：不同国家的电源插座标准不同，通过转换头适配
-- **AB 兼容**：新接口和旧接口之间的适配转换
-
-### 代码
-
-```go
-package test
-
-type Adapter interface {
-	Request() string
-}
-
-func NewAdapter(adaptee Adaptee) Adapter {
-	return &adapter{
-		adaptee: adaptee,
-	}
-}
-
-type adapter struct {
-	adaptee Adaptee
-}
-
-func (a *adapter) Request() string {
-	return a.adaptee.SpecificRequest()
-}
-
-// --- Adaptee 接口与实现 ---
-
-type Adaptee interface {
-	SpecificRequest() string
-}
-
-type adaptee struct{}
-
-func NewAdaptee() Adaptee {
-	return &adaptee{}
-}
-
-func (a *adaptee) SpecificRequest() string {
-	return "specific request called"
-}
-
-```
-
-```go
-package test
-
-import "testing"
-
-func TestAdapter(t *testing.T) {
-	adaptee := NewAdaptee()
-	adapter := NewAdapter(adaptee)
-
-	out := adapter.Request()
-	expected := "specific request called"
-
-	if out != expected {
-		t.Errorf("Adapter Request() = %q, want %q", out, expected)
-	}
-}
-```
-
-## singleton 单例模式
-
-### 定义
-保证一个类仅有一个实例，并提供一个访问它的全局访问点。
-
-### 使用场景
-- 系统的某个类只需要一个全局实例
-- 对象创建成本较高（配置管理、连接池、线程池）
-- 需要控制实例数量以节省系统资源
-
-### 经典案例
-- **Go `sync.Once`**：标准库提供的线程安全一次性初始化原语，是 Go 实现单例的推荐方式
-- **配置管理器**：整个应用共享一份配置实例
-- **数据库连接池**：全局唯一的连接池管理所有数据库连接
-- **日志记录器**：统一的日志输出实例，避免重复创建文件句柄
-- **Spring IoC 容器**：默认以单例方式管理 Bean
-
-### 代码
-
-```go
-package test
-
-import "sync"
-
-type Singleton interface {
-	Foo()
-}
-
-type singleton struct{}
-
-func (s *singleton) Foo() {}
-
-var (
-	once     sync.Once
-	instance Singleton
-)
-
-func GetSingleton() Singleton {
-	once.Do(func() {
-		instance = &singleton{}
-	})
-	return instance
-}
-
-```
-
-```go
-package test
-
-import (
-	"sync"
-	"testing"
-)
-
-const goroutineCount = 1000
-
-// 单线程测试
-func TestSingletonSingleThread(t *testing.T) {
-	a := GetSingleton()
-	b := GetSingleton()
-	if a != b {
-		t.Fatalf("Singleton failed: a != b")
-	}
-}
-
-// 并发测试
-func TestSingletonConcurrent(t *testing.T) {
-	start := make(chan struct{})
-	instances := [goroutineCount]Singleton{}
-	wg := sync.WaitGroup{}
-	wg.Add(goroutineCount)
-
-	for i := 0; i < goroutineCount; i++ {
-		go func(idx int) {
-			<-start
-			instances[idx] = GetSingleton()
-			wg.Done()
-		}(i)
-	}
-
-	// 同时启动所有 goroutine
-	close(start)
-	wg.Wait()
-
-	// 验证所有实例都相等
-	for i := 0; i < goroutineCount-1; i++ {
-		if instances[i] != instances[i+1] {
-			t.Fatalf("Singleton failed: instances[%d] != instances[%d]", i, i+1)
-		}
-	}
-}
-
-```
-
-## factory_method 工厂方法
+## 2. factory_method 工厂方法
 
 ### 定义
 定义一个用于创建对象的接口，让子类决定实例化哪一个类。工厂方法使一个类的实例化延迟到其子类。
@@ -461,7 +243,7 @@ func TestOperatorFactory(t *testing.T) {
 
 ```
 
-## abstract_factory 抽象工厂
+## 3. abstract_factory 抽象工厂
 
 ### 定义
 提供一个创建一系列相关或相互依赖对象的接口，而无需指定它们具体的类。
@@ -589,7 +371,101 @@ func TestAbstractFactory(t *testing.T) {
 
 ```
 
-## builder 建造者
+## 4. singleton 单例模式
+
+### 定义
+保证一个类仅有一个实例，并提供一个访问它的全局访问点。
+
+### 使用场景
+- 系统的某个类只需要一个全局实例
+- 对象创建成本较高（配置管理、连接池、线程池）
+- 需要控制实例数量以节省系统资源
+
+### 经典案例
+- **Go `sync.Once`**：标准库提供的线程安全一次性初始化原语，是 Go 实现单例的推荐方式
+- **配置管理器**：整个应用共享一份配置实例
+- **数据库连接池**：全局唯一的连接池管理所有数据库连接
+- **日志记录器**：统一的日志输出实例，避免重复创建文件句柄
+- **Spring IoC 容器**：默认以单例方式管理 Bean
+
+### 代码
+
+```go
+package test
+
+import "sync"
+
+type Singleton interface {
+	Foo()
+}
+
+type singleton struct{}
+
+func (s *singleton) Foo() {}
+
+var (
+	once     sync.Once
+	instance Singleton
+)
+
+func GetSingleton() Singleton {
+	once.Do(func() {
+		instance = &singleton{}
+	})
+	return instance
+}
+
+```
+
+```go
+package test
+
+import (
+	"sync"
+	"testing"
+)
+
+const goroutineCount = 1000
+
+// 单线程测试
+func TestSingletonSingleThread(t *testing.T) {
+	a := GetSingleton()
+	b := GetSingleton()
+	if a != b {
+		t.Fatalf("Singleton failed: a != b")
+	}
+}
+
+// 并发测试
+func TestSingletonConcurrent(t *testing.T) {
+	start := make(chan struct{})
+	instances := [goroutineCount]Singleton{}
+	wg := sync.WaitGroup{}
+	wg.Add(goroutineCount)
+
+	for i := 0; i < goroutineCount; i++ {
+		go func(idx int) {
+			<-start
+			instances[idx] = GetSingleton()
+			wg.Done()
+		}(i)
+	}
+
+	// 同时启动所有 goroutine
+	close(start)
+	wg.Wait()
+
+	// 验证所有实例都相等
+	for i := 0; i < goroutineCount-1; i++ {
+		if instances[i] != instances[i+1] {
+			t.Fatalf("Singleton failed: instances[%d] != instances[%d]", i, i+1)
+		}
+	}
+}
+
+```
+
+## 5. builder 建造者
 
 ### 定义
 将一个复杂对象的构建与它的表示分离，使得同样的构建过程可以创建不同的表示。
@@ -717,7 +593,7 @@ func TestBuilder(t *testing.T) {
 
 ```
 
-## prototype 原型模式
+## 6. prototype 原型模式
 
 ### 定义
 用原型实例指定创建对象的种类，并通过拷贝这些原型创建新的对象。
@@ -848,7 +724,175 @@ func TestPrototypeClone(t *testing.T) {
 }
 ```
 
-## proxy 代理
+## 7. facade 门面模式
+
+### 定义
+为子系统中的一组接口提供一个统一的接口。门面模式定义了一个高层接口，使得子系统更容易使用。
+
+### 使用场景
+- 为复杂子系统提供一个简单入口
+- 客户端与多个子系统存在强依赖，希望解耦
+- 构建分层系统时，作为每层的入口点
+
+### 经典案例
+- **Go `net/http`**：`http.HandleFunc()` 和 `http.ListenAndServe()` 封装了底层的 ServeMux、Listener、Server 等
+- **SLF4J**：Java 的日志门面，统一了 log4j、logback、java.util.logging 等日志框架
+- **RESTful API**：Controller 层作为 Service 层的门面
+- **复杂库的 API**：提供简洁的 API 隐藏复杂的内部实现
+
+### 代码
+
+```go
+package test
+
+type API interface {
+	Test() string
+}
+
+func NewAPI() API {
+	return &apiImpl{
+		a: NewAImpl(),
+		b: NewBImpl(),
+	}
+}
+
+type apiImpl struct {
+	a AModule
+	b BModule
+}
+
+func (api *apiImpl) Test() string {
+	// 把两部分结果拼接返回
+	return api.a.TestA() + api.b.TestB()
+}
+
+// --- AModule ---
+
+type AModule interface {
+	TestA() string
+}
+
+type AImpl struct{}
+
+func NewAImpl() AModule {
+	return &AImpl{}
+}
+
+func (a *AImpl) TestA() string {
+	return "testA ... "
+}
+
+// --- BModule ---
+
+type BModule interface {
+	TestB() string
+}
+
+type BImpl struct{}
+
+func NewBImpl() BModule {
+	return &BImpl{}
+}
+
+func (b *BImpl) TestB() string {
+	return "testB ... "
+}
+
+```
+
+```go
+package test
+
+import "testing"
+
+func TestFacade(t *testing.T) {
+	api := NewAPI()
+	out := api.Test()
+	expected := "testA ... testB ... "
+
+	if out != expected {
+		t.Errorf("API Test() = %q, want %q", out, expected)
+	}
+}
+
+```
+
+## 8. adapter 适配器
+
+### 定义
+将一个类的接口转换成客户希望的另一个接口。适配器模式让那些接口不兼容的类可以一起工作。
+
+### 使用场景
+- 想使用一个已存在的类，但其接口不符合需求
+- 想创建一个可复用的类，与不兼容接口的类协同工作
+- 需要适配多个版本或多种实现
+
+### 经典案例
+- **Go `io` 包**：`io.Copy()` 接受 `io.Reader` 和 `io.Writer`，通过适配器模式将不同类型的数据源统一
+- **JDBC 驱动**：每个数据库提供 JDBC 适配器，应用程序统一通过 JDBC 接口操作不同数据库
+- **充电器转换头**：不同国家的电源插座标准不同，通过转换头适配
+- **AB 兼容**：新接口和旧接口之间的适配转换
+
+### 代码
+
+```go
+package test
+
+type Adapter interface {
+	Request() string
+}
+
+func NewAdapter(adaptee Adaptee) Adapter {
+	return &adapter{
+		adaptee: adaptee,
+	}
+}
+
+type adapter struct {
+	adaptee Adaptee
+}
+
+func (a *adapter) Request() string {
+	return a.adaptee.SpecificRequest()
+}
+
+// --- Adaptee 接口与实现 ---
+
+type Adaptee interface {
+	SpecificRequest() string
+}
+
+type adaptee struct{}
+
+func NewAdaptee() Adaptee {
+	return &adaptee{}
+}
+
+func (a *adaptee) SpecificRequest() string {
+	return "specific request called"
+}
+
+```
+
+```go
+package test
+
+import "testing"
+
+func TestAdapter(t *testing.T) {
+	adaptee := NewAdaptee()
+	adapter := NewAdapter(adaptee)
+
+	out := adapter.Request()
+	expected := "specific request called"
+
+	if out != expected {
+		t.Errorf("Adapter Request() = %q, want %q", out, expected)
+	}
+}
+```
+
+## 9. proxy 代理
 
 ### 定义
 为其他对象提供一种代理以控制对这个对象的访问。
@@ -916,445 +960,7 @@ func TestProxy(t *testing.T) {
 
 ```
 
-## observer 观察者
-
-### 定义
-定义对象间的一种一对多的依赖关系，当一个对象的状态发生改变时，所有依赖于它的对象都得到通知并被自动更新。
-
-### 使用场景
-- 一个对象的改变需要同时改变其他对象，但不知道有多少对象需要改变
-- 事件驱动的系统（UI 事件、消息推送）
-- 广播通信场景
-
-### 经典案例
-- **Go `context` 包**：`context.Context` 的 `Done()` 通道通知所有监听者取消事件
-- **Go `sync.Cond`**：条件变量的 Broadcast() 方法通知所有等待的 goroutine
-- **事件驱动架构**：消息队列中的发布-订阅模式
-- **Kubernetes Informer**：监听资源变化并通过事件通知处理器
-
-### 核心概念
-- **Subject（主题）**：维护观察者列表，提供添加/删除/通知方法
-- **Observer（观察者）**：定义更新接口
-- **推模型 vs 拉模型**：推模型在通知时主动推送数据；拉模型让观察者按需拉取
-
-### 代码
-
-```go
-package test
-
-type Subject struct {
-	observers []Observer
-	context   string
-}
-
-func NewSubject() *Subject {
-	return &Subject{
-		observers: make([]Observer, 0),
-	}
-}
-
-type Observer interface {
-	Update(*Subject)
-}
-
-func (s *Subject) Attach(o Observer) {
-	s.observers = append(s.observers, o)
-}
-
-func (s *Subject) notify() {
-	for _, o := range s.observers {
-		o.Update(s)
-	}
-}
-
-func (s *Subject) UpdateContext(context string) {
-	s.context = context
-	s.notify()
-}
-
-func (s *Subject) Context() string {
-	return s.context
-}
-
-type Reader struct {
-	name     string
-	received []string
-}
-
-func NewReader(name string) *Reader {
-	return &Reader{
-		name:     name,
-		received: make([]string, 0),
-	}
-}
-
-func (r *Reader) Update(s *Subject) {
-	r.received = append(r.received, s.Context())
-}
-
-func (r *Reader) Received() []string {
-	return r.received
-}
-
-func (r *Reader) Name() string {
-	return r.name
-}
-
-```
-
-```go
-package test
-
-import "testing"
-
-func TestObserver(t *testing.T) {
-	subject := NewSubject()
-
-	r1 := NewReader("reader1")
-	r2 := NewReader("reader2")
-	r3 := NewReader("reader3")
-
-	subject.Attach(r1)
-	subject.Attach(r2)
-	subject.Attach(r3)
-
-	subject.UpdateContext("observer mode")
-
-	readers := []*Reader{r1, r2, r3}
-	for _, r := range readers {
-		received := r.Received()
-		if len(received) != 1 {
-			t.Fatalf("%s expect 1 update got %d", r.Name(), len(received))
-		}
-		if received[0] != "observer mode" {
-			t.Fatalf("%s expect observer mode got %s", r.Name(), received[0])
-		}
-	}
-}
-
-```
-
-
-
-## interpreter 解释器模式
-
-### 定义
-给定一个语言，定义其文法的一种表示，并定义一个解释器，该解释器使用该表示来解释语言中的句子。
-
-### 使用场景
-- 需要解释执行的简单语言或表达式
-- 编译器、计算器、正则表达式引擎
-- 业务规则引擎中解析 DSL（领域特定语言）
-
-### 经典案例
-- **Go template 包**：`text/template` 和 `html/template` 解析模板语法
-- **SQL 解析器**：将 SQL 语句解析为 AST（抽象语法树）再执行
-- **数学表达式计算器**：将 `"1+2*3"` 解析为 AST 再求值
-- **Lua/Python 解释器**：将源码解析为 AST 后解释执行
-
-### 核心概念
-- **终结符表达式（TerminalExpression）**：文法中的最小单元，不再包含子表达式（如数字、变量）
-- **非终结符表达式（NonterminalExpression）**：由子表达式组合而成（如加减运算）
-- **抽象表达式（Node）**：定义统一的 Interpret 接口
-
-### 个人想法
-解释器模式适合构建简单的 DSL 解析器。对于复杂语言，通常会先经过词法分析 → 语法分析生成 AST，而解释器模式相当于简化版的 AST 解释执行过程。
-
-### 代码
-
-本示例实现一个简单的整数加减法表达式计算器。
-
-```go
-package interpreter
-
-import "strconv"
-
-// Node 抽象表达式接口
-type Node interface {
-	Interpret() int
-}
-
-// NumNode 终结符表达式 — 数字
-type NumNode struct {
-	num int
-}
-
-func NewNumNode(s string) *NumNode {
-	n, _ := strconv.Atoi(s)
-	return &NumNode{num: n}
-}
-
-func (n *NumNode) Interpret() int {
-	return n.num
-}
-
-// AddNode 非终结符表达式 — 加法
-type AddNode struct {
-	left, right Node
-}
-
-func NewAddNode(left, right Node) *AddNode {
-	return &AddNode{left: left, right: right}
-}
-
-func (n *AddNode) Interpret() int {
-	return n.left.Interpret() + n.right.Interpret()
-}
-
-// SubNode 非终结符表达式 — 减法
-type SubNode struct {
-	left, right Node
-}
-
-func NewSubNode(left, right Node) *SubNode {
-	return &SubNode{left: left, right: right}
-}
-
-func (n *SubNode) Interpret() int {
-	return n.left.Interpret() - n.right.Interpret()
-}
-
-// Parser 简单的解析器：将 "1+2-3" 格式的表达式解析为 AST
-func Parser(input string) Node {
-	tokens := tokenize(input)
-	if len(tokens) == 0 {
-		return &NumNode{0}
-	}
-
-	var root Node = NewNumNode(tokens[0])
-	for i := 1; i < len(tokens); i += 2 {
-		op := tokens[i]
-		right := NewNumNode(tokens[i+1])
-		switch op {
-		case "+":
-			root = NewAddNode(root, right)
-		case "-":
-			root = NewSubNode(root, right)
-		}
-	}
-	return root
-}
-
-func tokenize(input string) []string {
-	var tokens []string
-	var buf []byte
-	for i := 0; i < len(input); i++ {
-		c := input[i]
-		if c == '+' || c == '-' {
-			if len(buf) > 0 {
-				tokens = append(tokens, string(buf))
-				buf = buf[:0]
-			}
-			tokens = append(tokens, string(c))
-		} else {
-			buf = append(buf, c)
-		}
-	}
-	if len(buf) > 0 {
-		tokens = append(tokens, string(buf))
-	}
-	return tokens
-}
-```
-
-```go
-package interpreter
-
-import "testing"
-
-func TestInterpreter(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected int
-	}{
-		{"1+2", 3},
-		{"1+2+3", 6},
-		{"10-3", 7},
-		{"10-3-2", 5},
-		{"1+2-3", 0},
-		{"5-3+2", 4},
-		{"0", 0},
-		{"100", 100},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			node := Parser(tt.input)
-			result := node.Interpret()
-			if result != tt.expected {
-				t.Errorf("Parser(%q).Interpret() = %d, want %d", tt.input, result, tt.expected)
-			}
-		})
-	}
-}
-```
-
-## template_method 模板方法模式
-
-### 定义
-定义一个操作中的算法的骨架，而将一些具体步骤延迟到子类中。模板方法使得子类可以不改变一个算法的结构即可重定义该算法的某些特定步骤。
-
-### 使用场景
-- 多个子类有公共的行为逻辑，但部分步骤的实现不同
-- 需要控制子类扩展的"挂钩"操作（在模板方法的关键点提供可选的扩展点）
-- 框架设计中的"好莱坞原则"——"Don't call us, we'll call you"（别打给我们，我们会打给你）
-
-### 经典案例
-- **Go `sort` 包**：`sort.Slice()` 定义了排序的算法骨架，使用者只需提供 `less` 函数
-- **Spring 框架**：`JdbcTemplate`、`RestTemplate`、`TransactionTemplate` 等模板类
-- **Java Servlet**：`HttpServlet` 的 `doGet()`/`doPost()` 方法，由容器调用
-- **Go `database/sql`**：`sql.DB` 的 `Query()`/`Exec()` 定义连接池管理的骨架，具体 SQL 由使用者提供
-
-### 核心概念
-- **AbstractClass（抽象类）**：定义模板方法（算法骨架）和抽象步骤方法
-- **ConcreteClass（具体类）**：实现抽象步骤方法，不改变算法结构
-
-### 个人想法
-模板方法模式与建造者模式的区别：模板方法是行为型模式，关注算法步骤的复用；建造者是创建型模式，关注对象的构建过程。
-
-### 代码
-
-本示例模拟"拿食物"的过程：打开容器 → 拿出东西 → 关闭容器。冰箱和锅具的具体操作不同，但步骤顺序相同。
-
-```go
-package template_method
-
-import (
-	"fmt"
-)
-
-type getfood interface {
-	first()
-	second()
-	third()
-}
-
-type template struct {
-	g getfood
-}
-
-func (b *template) getsomefood() {
-	if b == nil {
-		return
-	}
-	b.g.first()
-	b.g.second()
-	b.g.third()
-}
-
-type bingA struct {
-	template
-}
-
-func NewBingA() *bingA {
-	b := bingA{}
-	return &b
-}
-
-func (b *bingA) first() {
-	if b == nil {
-		return
-	}
-	fmt.Println("打开冰箱")
-}
-
-func (b *bingA) second() {
-	if b == nil {
-		return
-	}
-	fmt.Println("拿出东西")
-}
-
-func (b *bingA) third() {
-	if b == nil {
-		return
-	}
-	fmt.Println("关闭冰箱")
-}
-
-type Guo struct {
-	template
-}
-
-func NewGuo() *Guo {
-	b := Guo{}
-	return &b
-}
-
-func (b *Guo) first() {
-	if b == nil {
-		return
-	}
-	fmt.Println("打开锅")
-}
-
-func (b *Guo) second() {
-	if b == nil {
-		return
-	}
-	fmt.Println("拿出东西锅")
-}
-
-func (b *Guo) third() {
-	if b == nil {
-		return
-	}
-	fmt.Println("关闭锅")
-}
-```
-
-```go
-package template_method
-
-import "testing"
-
-func TestTemplate(t *testing.T) {
-	b := NewBingA()
-	b.g = b
-	b.getsomefood()
-
-	g := NewGuo()
-	g.g = g
-	g.getsomefood()
-}
-
-func TestTemplateBingA(t *testing.T) {
-	b := NewBingA()
-	b.g = b
-	// 验证模板方法不会 panic
-	b.getsomefood()
-}
-
-func TestTemplateGuo(t *testing.T) {
-	g := NewGuo()
-	g.g = g
-	// 验证模板方法不会 panic
-	g.getsomefood()
-}
-```
-
----
-
-## 行为型模式小结
-
-行为型模式关注对象之间的通信和职责分配。以下是本笔记中已涵盖的行为型模式：
-
-| 模式 | 核心思想 | 典型场景 |
-|------|----------|----------|
-| **模板方法** | 定义算法骨架，子类实现具体步骤 | 框架扩展点 |
-| **策略** | 封装可互换的算法 | 促销计算、排序 |
-| **状态** | 状态改变行为改变 | 工作流、订单状态 |
-| **观察者** | 一对多的依赖通知 | 事件监听、消息推送 |
-| **中介者** | 对象间通信通过中介协调 | 聊天室、MVC |
-| **命令** | 将请求封装为对象 | 撤销队列、日志 |
-| **职责链** | 请求沿链传递直到被处理 | 审批流程、中间件 |
-| **迭代器** | 统一遍历聚合对象 | 集合遍历 |
-| **解释器** | 解析并执行 DSL/表达式 | 计算器、规则引擎 |
-| **访问者** | 在不改变元素类的前提下添加新操作 | 编译器的 AST 处理 |
-| **备忘录** | 保存和恢复对象内部状态 | 撤销/恢复 |
-| **享元** | 共享细粒度对象减少内存 | 线程池、缓存 |
-
-## decorator 装饰器模式
+## 10. decorator 装饰器模式
 
 ### 定义
 动态地给一个对象添加一些额外的职责。就增加功能来说，装饰模式比生成子类更为灵活。
@@ -1505,129 +1111,7 @@ func TestDecoratorWithoutInner(t *testing.T) {
 }
 ```
 
-## chain_of_responsibility 责任链模式
-
-### 定义
-使多个对象都有机会处理请求，从而避免请求的发送者和接收者之间的耦合关系。将这些对象连成一条链，并沿着这条链传递该请求，直到有一个对象处理它为止。
-
-### 使用场景
-- 有多个对象可以处理一个请求，哪个对象处理由运行时决定
-- 在不明确指定接收者的情况下，向多个对象中的一个提交请求
-- 可以动态指定处理请求的对象集合
-
-### 经典案例
-- **Go `net/http` 中间件**：`Handle` 链中每个中间件可以决定处理请求或传递给下一个
-- **Java Servlet Filter**：FilterChain 将请求沿过滤器链传递
-- **审批流程**：组长 → 经理 → 总监 → CEO，逐级审批
-- **日志级别**：DEBUG → INFO → WARN → ERROR，级别不够就传递给下一个
-
-### 代码
-
-```go
-/*
- Chain Of Responsibility 职责链模式：
-        使多个对象都有机会处理请求，从而避免请求的发送者和接收者之间的耦合关系。
-        将这些对象连成一条链，并沿着这条链传递该请求，直到有一个对象处理它为止
-
- 个人想法：MFC的消息队列机制
-*/
-package test
-
-import (
-	"fmt"
-)
-
-const (
-	constHandler = iota
-	constHandlerA
-	constHandlerB
-)
-
-// 处理请求接口
-type IHandler interface {
-	SetSuccessor(IHandler)
-	HandleRequest(int) int
-}
-
-// 实现处理请求的接口的基本结构体类型
-type Handler struct {
-	successor IHandler // 继承者
-}
-
-func (h *Handler) SetSuccessor(i IHandler) {
-	if h == nil {
-		return
-	}
-	h.successor = i
-}
-
-// 具体处理结构体，这里简单处理int类型的请求，判断是否在[1-10]之间，是：处理，否：交给successor处理
-type ConcreteHandlerA struct {
-	Handler
-}
-
-func (c *ConcreteHandlerA) HandleRequest(req int) int {
-	if c == nil {
-		return constHandler
-	}
-	if req > 0 && req < 11 {
-		fmt.Println("ConcreteHandlerA可以处理这个请求")
-		return constHandlerA
-	} else if c.successor != nil {
-		return c.successor.HandleRequest(req)
-	}
-	return constHandler
-}
-
-func NewConcreteHandlerA() *ConcreteHandlerA {
-	return &ConcreteHandlerA{}
-}
-
-// 具体处理结构体，这里简单处理int类型的请求，判断是否在[11-20]之间，是：处理，否：交给successor处理
-type ConcreteHandlerB struct {
-	Handler
-}
-
-func (c *ConcreteHandlerB) HandleRequest(req int) int {
-	if c == nil {
-		return constHandler
-	}
-	if req > 10 && req < 21 {
-		fmt.Println("ConcreteHandlerB可以处理这个请求")
-		return constHandlerB
-	} else if c.successor != nil {
-		return c.successor.HandleRequest(req)
-	}
-	return constHandler
-}
-
-func NewConcreteHandlerB() *ConcreteHandlerB {
-	return &ConcreteHandlerB{}
-}
-```
-
-```go
-package test
-
-import (
-	"testing"
-)
-
-func TestChainOfResponsibility(t *testing.T) {
-	ca := NewConcreteHandlerA()
-	cb := NewConcreteHandlerB()
-	ca.SetSuccessor(cb)
-
-	var req = [][]int{{1, constHandlerA}, {4, constHandlerA}, {11, constHandlerB}, {0, constHandler}}
-	for _, val := range req {
-		if val[1] != ca.HandleRequest(val[0]) {
-			t.Error("错误")
-		}
-	}
-}
-```
-
-## bridge 桥接模式
+## 11. bridge 桥接模式
 
 ### 定义
 将抽象部分与它的实现部分分离，使它们都可以独立地变化。
@@ -1754,318 +1238,7 @@ func TestBridgePhoneBWithSoftwareA(t *testing.T) {
 }
 ```
 
-## memento 备忘录模式
-
-### 定义
-在不破坏封装性的前提下，捕获一个对象的内部状态，并在该对象之外保存这个状态。这样以后就可以将该对象恢复到原先保存的状态。
-
-### 使用场景
-- 需要保存和恢复对象的历史状态
-- 实现撤销/重做操作
-- 需要保存快照以应对故障恢复
-
-### 经典案例
-- **版本控制系统**：Git 的 commit 机制保存文件快照，可以恢复到任意提交
-- **游戏存档**：保存游戏角色的状态（生命值、装备、位置）
-- **IDE 撤销**：Ctrl+Z 撤销操作恢复文档到之前的状态
-- **数据库事务**：回滚日志用于事务回滚
-
-### 核心概念
-- **Originator（发起人）**：需要保存状态的对象
-- **Memento（备忘录）**：存储 Originator 内部状态的对象
-- **Caretaker（管理者）**：负责保存和提供备忘录
-
-### 代码
-
-```go
-/*
- Memento 备忘录模式：
-        在不破坏封装性的前提下，捕获一个对象的内部状态，并在该对象之外保存这个状态。
-        这样以后就可以将该对象恢复到原先保存的状态
- 个人想法：将某个类的状态（某些状态，具体有该类决定）保存在另外一个类中
-         （代码级别：提供一个函数能够将状态保存起来，返回出去），保存好状态的类对象是管理类的成员，
-		 原来的类需要恢复时，再从管理类中获取原来的状态
-*/
-
-package test
-
-import (
-	"fmt"
-)
-
-type GameRole struct {
-	vit int
-	atk int
-	def int
-}
-
-func (g *GameRole) StateDisplay() {
-	if g == nil {
-		return
-	}
-	fmt.Println("角色当前状态：")
-	fmt.Println("体力：", g.vit)
-	fmt.Println("攻击：", g.atk)
-	fmt.Println("防御：", g.def)
-	fmt.Println("============")
-}
-
-func (g *GameRole) GetInitState() {
-	if g == nil {
-		return
-	}
-	g.vit = 100
-	g.atk = 100
-	g.def = 100
-}
-
-func (g *GameRole) Fight() {
-	if g == nil {
-		return
-	}
-	g.vit = 0
-	g.atk = 0
-	g.def = 0
-}
-func (g *GameRole) SaveState() RoleStateMemento {
-	if g == nil {
-		return RoleStateMemento{}
-	}
-	return RoleStateMemento{*g}
-}
-
-func (g *GameRole) RecoveryState(r RoleStateMemento) {
-	if g == nil {
-		return
-	}
-	g.vit = r.vit
-	g.atk = r.atk
-	g.def = r.def
-}
-
-type RoleStateMemento struct {
-	GameRole
-}
-
-type RoleStateCaretaker struct {
-	memento RoleStateMemento
-}
-```
-
-```go
-package test
-
-import (
-	"testing"
-)
-
-func TestMemento(t *testing.T) {
-	gr := GameRole{}
-	gr.GetInitState()
-	gr.StateDisplay()
-
-	caretaker := RoleStateCaretaker{}
-	caretaker.memento = gr.SaveState()
-	gr.Fight()
-	gr.StateDisplay()
-	gr.RecoveryState(caretaker.memento)
-	gr.StateDisplay()
-}
-```
-
-## state 状态模式
-
-### 定义
-当一个对象的内在状态改变时，允许改变其行为，这个对象看起来像是改变了其类。
-
-### 使用场景
-- 对象的行为依赖于其状态，并且必须在运行时根据状态改变行为
-- 代码中包含大量与状态有关的条件语句（if-else / switch）
-- 工作流引擎、订单状态机、游戏角色状态
-
-### 经典案例
-- **TCP 连接状态**：ESTABLISHED、LISTEN、CLOSE_WAIT 等状态对应不同的处理行为
-- **订单状态机**：待支付 → 已支付 → 已发货 → 已收货 → 已完成，各状态下的操作不同
-- **游戏角色状态**：正常状态、中毒状态、无敌状态等，影响角色的行为逻辑
-- **Go `net/http`**：连接的读写超时、TLS 握手等状态处理
-
-### 核心概念
-- **Context（上下文）**：持有当前状态对象，将请求委托给状态对象处理
-- **State（状态接口）**：定义状态相关行为的统一接口
-- **ConcreteState（具体状态）**：实现具体的状态相关行为，并决定状态转换
-
-### 个人想法
-UML 图与策略模式很相似，区别在于：
-- 策略模式：客户端主动选择策略，策略之间相互独立
-- 状态模式：状态之间可以自动转换，每个状态决定下一个状态
-
-### 代码
-
-本示例模拟工作时间段状态：不同时间（上午、中午、下午、晚上）有不同的行为，状态会自动转换。
-
-```go
-package state
-
-import (
-	"fmt"
-)
-
-// Work 工作类 -- Context
-type Work struct {
-	hour  int
-	state State
-}
-
-func (w *Work) Hour() int {
-	if w == nil {
-		return -1
-	}
-	return w.hour
-}
-
-func (w *Work) State() State {
-	if w == nil {
-		return nil
-	}
-	return w.state
-}
-
-func (w *Work) SetHour(h int) {
-	if w == nil {
-		return
-	}
-	w.hour = h
-}
-
-func (w *Work) SetState(s State) {
-	if w == nil {
-		return
-	}
-	w.state = s
-}
-
-func (w *Work) writeProgram() {
-	if w == nil {
-		return
-	}
-	w.state.writeProgram(w)
-}
-
-func NewWork() *Work {
-	state := new(morningState)
-	return &Work{state: state}
-}
-
-type State interface {
-	writeProgram(w *Work)
-}
-
-// morningState 上午时分状态
-type morningState struct{}
-
-func (m *morningState) writeProgram(w *Work) {
-	if w.Hour() < 12 {
-		fmt.Println("现在是上午时分", w.Hour())
-	} else {
-		w.SetState(new(NoonState))
-		w.writeProgram()
-	}
-}
-
-// NoonState 中午时分状态
-type NoonState struct{}
-
-func (m *NoonState) writeProgram(w *Work) {
-	if w.Hour() < 13 {
-		fmt.Println("现在是中午时分", w.Hour())
-	} else {
-		w.SetState(new(AfternoonState))
-		w.writeProgram()
-	}
-}
-
-// AfternoonState 下午时分状态
-type AfternoonState struct{}
-
-func (m *AfternoonState) writeProgram(w *Work) {
-	if w.Hour() < 17 {
-		fmt.Println("现在是下午时分", w.Hour())
-	} else {
-		w.SetState(new(EveningState))
-		w.writeProgram()
-	}
-}
-
-// EveningState 晚上时分状态
-type EveningState struct{}
-
-func (m *EveningState) writeProgram(w *Work) {
-	if w.Hour() < 21 {
-		fmt.Println("现在是晚上时分", w.Hour())
-	} else {
-		fmt.Println("现在开始睡觉", w.Hour())
-	}
-}
-```
-
-```go
-package state
-
-import (
-	"testing"
-)
-
-func TestStateMorning(t *testing.T) {
-	w := NewWork()
-	w.SetHour(9)
-	// 9点应该是上午状态
-	if w.State() == nil {
-		t.Fatal("state should not be nil")
-	}
-	w.writeProgram()
-}
-
-func TestStateTransition(t *testing.T) {
-	tests := []struct {
-		name string
-		hour int
-	}{
-		{"morning", 9},
-		{"noon", 12},
-		{"afternoon", 14},
-		{"evening", 18},
-		{"sleep", 21},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			w := NewWork()
-			w.SetHour(tt.hour)
-			w.writeProgram()
-		})
-	}
-}
-
-func TestStateHourGetter(t *testing.T) {
-	w := NewWork()
-	w.SetHour(15)
-	if w.Hour() != 15 {
-		t.Errorf("expected hour 15, got %d", w.Hour())
-	}
-}
-
-func TestNewWork(t *testing.T) {
-	w := NewWork()
-	if w == nil {
-		t.Fatal("NewWork() returned nil")
-	}
-	if w.State() == nil {
-		t.Error("initial state should not be nil")
-	}
-}
-```
-
-## composite 组合模式
+## 12. composite 组合模式
 
 ### 定义
 将对象组合成树形结构以表示”部分-整体”的层次结构。组合模式使得用户对单个对象和组合对象的使用具有一致性。
@@ -2301,7 +1474,977 @@ func TestCompositeLineOfDuty(t *testing.T) {
 }
 ```
 
-## iterator 迭代器模式
+## 13. flyweight 享元模式
+
+### 定义
+运用共享技术有效地支持大量细粒度对象的复用。
+
+### 使用场景
+- 一个应用使用了大量的对象，造成很大的存储开销
+- 对象的大多数状态可以变为外部状态
+- 需要维护一组共享对象，并希望复用它们
+
+### 经典案例
+- **Go `sync.Pool`**：对象池复用临时对象，减少 GC 压力
+- **Java String 常量池**：相同的字符串字面量共享同一个 String 对象
+- **数据库连接池**：复用数据库连接，避免频繁创建和销毁
+- **线程池**：复用线程，减少线程创建和销毁的开销
+
+### 核心概念
+- **内蕴状态（Intrinsic State）**：可共享的状态，存储在享元对象内部
+- **外蕴状态（Extrinsic State）**：不可共享的状态，由客户端传入
+
+### 代码
+
+```go
+/*
+ Flyweight 享元模式：
+        运用共享技术有效地支持大量细粒度的对象
+ 个人想法：主要思想是共享，将可以共享的部分放在对象内部，
+         不可以共享的部分放在外边，享元工厂创建几个享元对象就可以了，
+		这样不同的外部状态，可以针对同一个对象，给人感觉是操作多个对象，
+		通过参数的形式对同一个对象的操作，像是对多个对象的操作
+ 日期：   20170311
+*/
+
+package test
+
+import (
+	"fmt"
+)
+
+// 享元对象接口
+type IFlyweight interface {
+	Operation(int) //来自外部的状态
+}
+
+// 共享对象
+type ConcreteFlyweight struct {
+	name string
+}
+
+func (c *ConcreteFlyweight) Operation(outState int) {
+	if c == nil {
+		return
+	}
+	fmt.Println("共享对象响应外部状态", outState)
+}
+
+// 不共享对象
+type UnsharedConcreteFlyweight struct {
+	name string
+}
+
+func (c *UnsharedConcreteFlyweight) Operation(outState int) {
+	if c == nil {
+		return
+	}
+	fmt.Println("不共享对象响应外部状态", outState)
+}
+
+// 享元工厂对象
+type FlyweightFactory struct {
+	flyweights map[string]IFlyweight
+}
+
+func (f *FlyweightFactory) Flyweight(name string) IFlyweight {
+	if f == nil {
+		return nil
+	}
+	if name == "u" {
+		return &UnsharedConcreteFlyweight{"u"}
+	} else if _, ok := f.flyweights[name]; !ok {
+		f.flyweights[name] = &ConcreteFlyweight{name}
+	}
+	return f.flyweights[name]
+}
+
+func NewFlyweightFactory() *FlyweightFactory {
+	ff := FlyweightFactory{make(map[string]IFlyweight)}
+	ff.flyweights["a"] = &ConcreteFlyweight{"a"}
+	ff.flyweights["b"] = &ConcreteFlyweight{"b"}
+	return &ff
+}
+```
+
+```go
+package test
+
+import (
+	"testing"
+)
+
+func TestFlyweight(t *testing.T) {
+	ff := NewFlyweightFactory()
+
+	fya := ff.Flyweight("a")
+	fya.Operation(1)
+
+	fyb := ff.Flyweight("b")
+	fyb.Operation(2)
+
+	fyc := ff.Flyweight("c")
+	fyc.Operation(3)
+
+	fyd := ff.Flyweight("d")
+	fyd.Operation(4)
+
+	fyu := ff.Flyweight("u")
+	fyu.Operation(5)
+}
+```
+
+## 14. observer 观察者
+
+### 定义
+定义对象间的一种一对多的依赖关系，当一个对象的状态发生改变时，所有依赖于它的对象都得到通知并被自动更新。
+
+### 使用场景
+- 一个对象的改变需要同时改变其他对象，但不知道有多少对象需要改变
+- 事件驱动的系统（UI 事件、消息推送）
+- 广播通信场景
+
+### 经典案例
+- **Go `context` 包**：`context.Context` 的 `Done()` 通道通知所有监听者取消事件
+- **Go `sync.Cond`**：条件变量的 Broadcast() 方法通知所有等待的 goroutine
+- **事件驱动架构**：消息队列中的发布-订阅模式
+- **Kubernetes Informer**：监听资源变化并通过事件通知处理器
+
+### 核心概念
+- **Subject（主题）**：维护观察者列表，提供添加/删除/通知方法
+- **Observer（观察者）**：定义更新接口
+- **推模型 vs 拉模型**：推模型在通知时主动推送数据；拉模型让观察者按需拉取
+
+### 代码
+
+```go
+package test
+
+type Subject struct {
+	observers []Observer
+	context   string
+}
+
+func NewSubject() *Subject {
+	return &Subject{
+		observers: make([]Observer, 0),
+	}
+}
+
+type Observer interface {
+	Update(*Subject)
+}
+
+func (s *Subject) Attach(o Observer) {
+	s.observers = append(s.observers, o)
+}
+
+func (s *Subject) notify() {
+	for _, o := range s.observers {
+		o.Update(s)
+	}
+}
+
+func (s *Subject) UpdateContext(context string) {
+	s.context = context
+	s.notify()
+}
+
+func (s *Subject) Context() string {
+	return s.context
+}
+
+type Reader struct {
+	name     string
+	received []string
+}
+
+func NewReader(name string) *Reader {
+	return &Reader{
+		name:     name,
+		received: make([]string, 0),
+	}
+}
+
+func (r *Reader) Update(s *Subject) {
+	r.received = append(r.received, s.Context())
+}
+
+func (r *Reader) Received() []string {
+	return r.received
+}
+
+func (r *Reader) Name() string {
+	return r.name
+}
+
+```
+
+```go
+package test
+
+import "testing"
+
+func TestObserver(t *testing.T) {
+	subject := NewSubject()
+
+	r1 := NewReader("reader1")
+	r2 := NewReader("reader2")
+	r3 := NewReader("reader3")
+
+	subject.Attach(r1)
+	subject.Attach(r2)
+	subject.Attach(r3)
+
+	subject.UpdateContext("observer mode")
+
+	readers := []*Reader{r1, r2, r3}
+	for _, r := range readers {
+		received := r.Received()
+		if len(received) != 1 {
+			t.Fatalf("%s expect 1 update got %d", r.Name(), len(received))
+		}
+		if received[0] != "observer mode" {
+			t.Fatalf("%s expect observer mode got %s", r.Name(), received[0])
+		}
+	}
+}
+
+```
+
+## 15. interpreter 解释器模式
+
+### 定义
+给定一个语言，定义其文法的一种表示，并定义一个解释器，该解释器使用该表示来解释语言中的句子。
+
+### 使用场景
+- 需要解释执行的简单语言或表达式
+- 编译器、计算器、正则表达式引擎
+- 业务规则引擎中解析 DSL（领域特定语言）
+
+### 经典案例
+- **Go template 包**：`text/template` 和 `html/template` 解析模板语法
+- **SQL 解析器**：将 SQL 语句解析为 AST（抽象语法树）再执行
+- **数学表达式计算器**：将 `"1+2*3"` 解析为 AST 再求值
+- **Lua/Python 解释器**：将源码解析为 AST 后解释执行
+
+### 核心概念
+- **终结符表达式（TerminalExpression）**：文法中的最小单元，不再包含子表达式（如数字、变量）
+- **非终结符表达式（NonterminalExpression）**：由子表达式组合而成（如加减运算）
+- **抽象表达式（Node）**：定义统一的 Interpret 接口
+
+### 个人想法
+解释器模式适合构建简单的 DSL 解析器。对于复杂语言，通常会先经过词法分析 → 语法分析生成 AST，而解释器模式相当于简化版的 AST 解释执行过程。
+
+### 代码
+
+本示例实现一个简单的整数加减法表达式计算器。
+
+```go
+package interpreter
+
+import "strconv"
+
+// Node 抽象表达式接口
+type Node interface {
+	Interpret() int
+}
+
+// NumNode 终结符表达式 — 数字
+type NumNode struct {
+	num int
+}
+
+func NewNumNode(s string) *NumNode {
+	n, _ := strconv.Atoi(s)
+	return &NumNode{num: n}
+}
+
+func (n *NumNode) Interpret() int {
+	return n.num
+}
+
+// AddNode 非终结符表达式 — 加法
+type AddNode struct {
+	left, right Node
+}
+
+func NewAddNode(left, right Node) *AddNode {
+	return &AddNode{left: left, right: right}
+}
+
+func (n *AddNode) Interpret() int {
+	return n.left.Interpret() + n.right.Interpret()
+}
+
+// SubNode 非终结符表达式 — 减法
+type SubNode struct {
+	left, right Node
+}
+
+func NewSubNode(left, right Node) *SubNode {
+	return &SubNode{left: left, right: right}
+}
+
+func (n *SubNode) Interpret() int {
+	return n.left.Interpret() - n.right.Interpret()
+}
+
+// Parser 简单的解析器：将 "1+2-3" 格式的表达式解析为 AST
+func Parser(input string) Node {
+	tokens := tokenize(input)
+	if len(tokens) == 0 {
+		return &NumNode{0}
+	}
+
+	var root Node = NewNumNode(tokens[0])
+	for i := 1; i < len(tokens); i += 2 {
+		op := tokens[i]
+		right := NewNumNode(tokens[i+1])
+		switch op {
+		case "+":
+			root = NewAddNode(root, right)
+		case "-":
+			root = NewSubNode(root, right)
+		}
+	}
+	return root
+}
+
+func tokenize(input string) []string {
+	var tokens []string
+	var buf []byte
+	for i := 0; i < len(input); i++ {
+		c := input[i]
+		if c == '+' || c == '-' {
+			if len(buf) > 0 {
+				tokens = append(tokens, string(buf))
+				buf = buf[:0]
+			}
+			tokens = append(tokens, string(c))
+		} else {
+			buf = append(buf, c)
+		}
+	}
+	if len(buf) > 0 {
+		tokens = append(tokens, string(buf))
+	}
+	return tokens
+}
+```
+
+```go
+package interpreter
+
+import "testing"
+
+func TestInterpreter(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected int
+	}{
+		{"1+2", 3},
+		{"1+2+3", 6},
+		{"10-3", 7},
+		{"10-3-2", 5},
+		{"1+2-3", 0},
+		{"5-3+2", 4},
+		{"0", 0},
+		{"100", 100},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			node := Parser(tt.input)
+			result := node.Interpret()
+			if result != tt.expected {
+				t.Errorf("Parser(%q).Interpret() = %d, want %d", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
+```
+
+## 16. template_method 模板方法模式
+
+### 定义
+定义一个操作中的算法的骨架，而将一些具体步骤延迟到子类中。模板方法使得子类可以不改变一个算法的结构即可重定义该算法的某些特定步骤。
+
+### 使用场景
+- 多个子类有公共的行为逻辑，但部分步骤的实现不同
+- 需要控制子类扩展的"挂钩"操作（在模板方法的关键点提供可选的扩展点）
+- 框架设计中的"好莱坞原则"——"Don't call us, we'll call you"（别打给我们，我们会打给你）
+
+### 经典案例
+- **Go `sort` 包**：`sort.Slice()` 定义了排序的算法骨架，使用者只需提供 `less` 函数
+- **Spring 框架**：`JdbcTemplate`、`RestTemplate`、`TransactionTemplate` 等模板类
+- **Java Servlet**：`HttpServlet` 的 `doGet()`/`doPost()` 方法，由容器调用
+- **Go `database/sql`**：`sql.DB` 的 `Query()`/`Exec()` 定义连接池管理的骨架，具体 SQL 由使用者提供
+
+### 核心概念
+- **AbstractClass（抽象类）**：定义模板方法（算法骨架）和抽象步骤方法
+- **ConcreteClass（具体类）**：实现抽象步骤方法，不改变算法结构
+
+### 个人想法
+模板方法模式与建造者模式的区别：模板方法是行为型模式，关注算法步骤的复用；建造者是创建型模式，关注对象的构建过程。
+
+### 代码
+
+本示例模拟"拿食物"的过程：打开容器 → 拿出东西 → 关闭容器。冰箱和锅具的具体操作不同，但步骤顺序相同。
+
+```go
+package template_method
+
+import (
+	"fmt"
+)
+
+type getfood interface {
+	first()
+	second()
+	third()
+}
+
+type template struct {
+	g getfood
+}
+
+func (b *template) getsomefood() {
+	if b == nil {
+		return
+	}
+	b.g.first()
+	b.g.second()
+	b.g.third()
+}
+
+type bingA struct {
+	template
+}
+
+func NewBingA() *bingA {
+	b := bingA{}
+	return &b
+}
+
+func (b *bingA) first() {
+	if b == nil {
+		return
+	}
+	fmt.Println("打开冰箱")
+}
+
+func (b *bingA) second() {
+	if b == nil {
+		return
+	}
+	fmt.Println("拿出东西")
+}
+
+func (b *bingA) third() {
+	if b == nil {
+		return
+	}
+	fmt.Println("关闭冰箱")
+}
+
+type Guo struct {
+	template
+}
+
+func NewGuo() *Guo {
+	b := Guo{}
+	return &b
+}
+
+func (b *Guo) first() {
+	if b == nil {
+		return
+	}
+	fmt.Println("打开锅")
+}
+
+func (b *Guo) second() {
+	if b == nil {
+		return
+	}
+	fmt.Println("拿出东西锅")
+}
+
+func (b *Guo) third() {
+	if b == nil {
+		return
+	}
+	fmt.Println("关闭锅")
+}
+```
+
+```go
+package template_method
+
+import "testing"
+
+func TestTemplate(t *testing.T) {
+	b := NewBingA()
+	b.g = b
+	b.getsomefood()
+
+	g := NewGuo()
+	g.g = g
+	g.getsomefood()
+}
+
+func TestTemplateBingA(t *testing.T) {
+	b := NewBingA()
+	b.g = b
+	// 验证模板方法不会 panic
+	b.getsomefood()
+}
+
+func TestTemplateGuo(t *testing.T) {
+	g := NewGuo()
+	g.g = g
+	// 验证模板方法不会 panic
+	g.getsomefood()
+}
+```
+
+---
+
+## 17. chain_of_responsibility 责任链模式
+
+### 定义
+使多个对象都有机会处理请求，从而避免请求的发送者和接收者之间的耦合关系。将这些对象连成一条链，并沿着这条链传递该请求，直到有一个对象处理它为止。
+
+### 使用场景
+- 有多个对象可以处理一个请求，哪个对象处理由运行时决定
+- 在不明确指定接收者的情况下，向多个对象中的一个提交请求
+- 可以动态指定处理请求的对象集合
+
+### 经典案例
+- **Go `net/http` 中间件**：`Handle` 链中每个中间件可以决定处理请求或传递给下一个
+- **Java Servlet Filter**：FilterChain 将请求沿过滤器链传递
+- **审批流程**：组长 → 经理 → 总监 → CEO，逐级审批
+- **日志级别**：DEBUG → INFO → WARN → ERROR，级别不够就传递给下一个
+
+### 代码
+
+```go
+/*
+ Chain Of Responsibility 职责链模式：
+        使多个对象都有机会处理请求，从而避免请求的发送者和接收者之间的耦合关系。
+        将这些对象连成一条链，并沿着这条链传递该请求，直到有一个对象处理它为止
+
+ 个人想法：MFC的消息队列机制
+*/
+package test
+
+import (
+	"fmt"
+)
+
+const (
+	constHandler = iota
+	constHandlerA
+	constHandlerB
+)
+
+// 处理请求接口
+type IHandler interface {
+	SetSuccessor(IHandler)
+	HandleRequest(int) int
+}
+
+// 实现处理请求的接口的基本结构体类型
+type Handler struct {
+	successor IHandler // 继承者
+}
+
+func (h *Handler) SetSuccessor(i IHandler) {
+	if h == nil {
+		return
+	}
+	h.successor = i
+}
+
+// 具体处理结构体，这里简单处理int类型的请求，判断是否在[1-10]之间，是：处理，否：交给successor处理
+type ConcreteHandlerA struct {
+	Handler
+}
+
+func (c *ConcreteHandlerA) HandleRequest(req int) int {
+	if c == nil {
+		return constHandler
+	}
+	if req > 0 && req < 11 {
+		fmt.Println("ConcreteHandlerA可以处理这个请求")
+		return constHandlerA
+	} else if c.successor != nil {
+		return c.successor.HandleRequest(req)
+	}
+	return constHandler
+}
+
+func NewConcreteHandlerA() *ConcreteHandlerA {
+	return &ConcreteHandlerA{}
+}
+
+// 具体处理结构体，这里简单处理int类型的请求，判断是否在[11-20]之间，是：处理，否：交给successor处理
+type ConcreteHandlerB struct {
+	Handler
+}
+
+func (c *ConcreteHandlerB) HandleRequest(req int) int {
+	if c == nil {
+		return constHandler
+	}
+	if req > 10 && req < 21 {
+		fmt.Println("ConcreteHandlerB可以处理这个请求")
+		return constHandlerB
+	} else if c.successor != nil {
+		return c.successor.HandleRequest(req)
+	}
+	return constHandler
+}
+
+func NewConcreteHandlerB() *ConcreteHandlerB {
+	return &ConcreteHandlerB{}
+}
+```
+
+```go
+package test
+
+import (
+	"testing"
+)
+
+func TestChainOfResponsibility(t *testing.T) {
+	ca := NewConcreteHandlerA()
+	cb := NewConcreteHandlerB()
+	ca.SetSuccessor(cb)
+
+	var req = [][]int{{1, constHandlerA}, {4, constHandlerA}, {11, constHandlerB}, {0, constHandler}}
+	for _, val := range req {
+		if val[1] != ca.HandleRequest(val[0]) {
+			t.Error("错误")
+		}
+	}
+}
+```
+
+## 18. state 状态模式
+
+### 定义
+当一个对象的内在状态改变时，允许改变其行为，这个对象看起来像是改变了其类。
+
+### 使用场景
+- 对象的行为依赖于其状态，并且必须在运行时根据状态改变行为
+- 代码中包含大量与状态有关的条件语句（if-else / switch）
+- 工作流引擎、订单状态机、游戏角色状态
+
+### 经典案例
+- **TCP 连接状态**：ESTABLISHED、LISTEN、CLOSE_WAIT 等状态对应不同的处理行为
+- **订单状态机**：待支付 → 已支付 → 已发货 → 已收货 → 已完成，各状态下的操作不同
+- **游戏角色状态**：正常状态、中毒状态、无敌状态等，影响角色的行为逻辑
+- **Go `net/http`**：连接的读写超时、TLS 握手等状态处理
+
+### 核心概念
+- **Context（上下文）**：持有当前状态对象，将请求委托给状态对象处理
+- **State（状态接口）**：定义状态相关行为的统一接口
+- **ConcreteState（具体状态）**：实现具体的状态相关行为，并决定状态转换
+
+### 个人想法
+UML 图与策略模式很相似，区别在于：
+- 策略模式：客户端主动选择策略，策略之间相互独立
+- 状态模式：状态之间可以自动转换，每个状态决定下一个状态
+
+### 代码
+
+本示例模拟工作时间段状态：不同时间（上午、中午、下午、晚上）有不同的行为，状态会自动转换。
+
+```go
+package state
+
+import (
+	"fmt"
+)
+
+// Work 工作类 -- Context
+type Work struct {
+	hour  int
+	state State
+}
+
+func (w *Work) Hour() int {
+	if w == nil {
+		return -1
+	}
+	return w.hour
+}
+
+func (w *Work) State() State {
+	if w == nil {
+		return nil
+	}
+	return w.state
+}
+
+func (w *Work) SetHour(h int) {
+	if w == nil {
+		return
+	}
+	w.hour = h
+}
+
+func (w *Work) SetState(s State) {
+	if w == nil {
+		return
+	}
+	w.state = s
+}
+
+func (w *Work) writeProgram() {
+	if w == nil {
+		return
+	}
+	w.state.writeProgram(w)
+}
+
+func NewWork() *Work {
+	state := new(morningState)
+	return &Work{state: state}
+}
+
+type State interface {
+	writeProgram(w *Work)
+}
+
+// morningState 上午时分状态
+type morningState struct{}
+
+func (m *morningState) writeProgram(w *Work) {
+	if w.Hour() < 12 {
+		fmt.Println("现在是上午时分", w.Hour())
+	} else {
+		w.SetState(new(NoonState))
+		w.writeProgram()
+	}
+}
+
+// NoonState 中午时分状态
+type NoonState struct{}
+
+func (m *NoonState) writeProgram(w *Work) {
+	if w.Hour() < 13 {
+		fmt.Println("现在是中午时分", w.Hour())
+	} else {
+		w.SetState(new(AfternoonState))
+		w.writeProgram()
+	}
+}
+
+// AfternoonState 下午时分状态
+type AfternoonState struct{}
+
+func (m *AfternoonState) writeProgram(w *Work) {
+	if w.Hour() < 17 {
+		fmt.Println("现在是下午时分", w.Hour())
+	} else {
+		w.SetState(new(EveningState))
+		w.writeProgram()
+	}
+}
+
+// EveningState 晚上时分状态
+type EveningState struct{}
+
+func (m *EveningState) writeProgram(w *Work) {
+	if w.Hour() < 21 {
+		fmt.Println("现在是晚上时分", w.Hour())
+	} else {
+		fmt.Println("现在开始睡觉", w.Hour())
+	}
+}
+```
+
+```go
+package state
+
+import (
+	"testing"
+)
+
+func TestStateMorning(t *testing.T) {
+	w := NewWork()
+	w.SetHour(9)
+	// 9点应该是上午状态
+	if w.State() == nil {
+		t.Fatal("state should not be nil")
+	}
+	w.writeProgram()
+}
+
+func TestStateTransition(t *testing.T) {
+	tests := []struct {
+		name string
+		hour int
+	}{
+		{"morning", 9},
+		{"noon", 12},
+		{"afternoon", 14},
+		{"evening", 18},
+		{"sleep", 21},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := NewWork()
+			w.SetHour(tt.hour)
+			w.writeProgram()
+		})
+	}
+}
+
+func TestStateHourGetter(t *testing.T) {
+	w := NewWork()
+	w.SetHour(15)
+	if w.Hour() != 15 {
+		t.Errorf("expected hour 15, got %d", w.Hour())
+	}
+}
+
+func TestNewWork(t *testing.T) {
+	w := NewWork()
+	if w == nil {
+		t.Fatal("NewWork() returned nil")
+	}
+	if w.State() == nil {
+		t.Error("initial state should not be nil")
+	}
+}
+```
+
+## 19. memento 备忘录模式
+
+### 定义
+在不破坏封装性的前提下，捕获一个对象的内部状态，并在该对象之外保存这个状态。这样以后就可以将该对象恢复到原先保存的状态。
+
+### 使用场景
+- 需要保存和恢复对象的历史状态
+- 实现撤销/重做操作
+- 需要保存快照以应对故障恢复
+
+### 经典案例
+- **版本控制系统**：Git 的 commit 机制保存文件快照，可以恢复到任意提交
+- **游戏存档**：保存游戏角色的状态（生命值、装备、位置）
+- **IDE 撤销**：Ctrl+Z 撤销操作恢复文档到之前的状态
+- **数据库事务**：回滚日志用于事务回滚
+
+### 核心概念
+- **Originator（发起人）**：需要保存状态的对象
+- **Memento（备忘录）**：存储 Originator 内部状态的对象
+- **Caretaker（管理者）**：负责保存和提供备忘录
+
+### 代码
+
+```go
+/*
+ Memento 备忘录模式：
+        在不破坏封装性的前提下，捕获一个对象的内部状态，并在该对象之外保存这个状态。
+        这样以后就可以将该对象恢复到原先保存的状态
+ 个人想法：将某个类的状态（某些状态，具体有该类决定）保存在另外一个类中
+         （代码级别：提供一个函数能够将状态保存起来，返回出去），保存好状态的类对象是管理类的成员，
+		 原来的类需要恢复时，再从管理类中获取原来的状态
+*/
+
+package test
+
+import (
+	"fmt"
+)
+
+type GameRole struct {
+	vit int
+	atk int
+	def int
+}
+
+func (g *GameRole) StateDisplay() {
+	if g == nil {
+		return
+	}
+	fmt.Println("角色当前状态：")
+	fmt.Println("体力：", g.vit)
+	fmt.Println("攻击：", g.atk)
+	fmt.Println("防御：", g.def)
+	fmt.Println("============")
+}
+
+func (g *GameRole) GetInitState() {
+	if g == nil {
+		return
+	}
+	g.vit = 100
+	g.atk = 100
+	g.def = 100
+}
+
+func (g *GameRole) Fight() {
+	if g == nil {
+		return
+	}
+	g.vit = 0
+	g.atk = 0
+	g.def = 0
+}
+func (g *GameRole) SaveState() RoleStateMemento {
+	if g == nil {
+		return RoleStateMemento{}
+	}
+	return RoleStateMemento{*g}
+}
+
+func (g *GameRole) RecoveryState(r RoleStateMemento) {
+	if g == nil {
+		return
+	}
+	g.vit = r.vit
+	g.atk = r.atk
+	g.def = r.def
+}
+
+type RoleStateMemento struct {
+	GameRole
+}
+
+type RoleStateCaretaker struct {
+	memento RoleStateMemento
+}
+```
+
+```go
+package test
+
+import (
+	"testing"
+)
+
+func TestMemento(t *testing.T) {
+	gr := GameRole{}
+	gr.GetInitState()
+	gr.StateDisplay()
+
+	caretaker := RoleStateCaretaker{}
+	caretaker.memento = gr.SaveState()
+	gr.Fight()
+	gr.StateDisplay()
+	gr.RecoveryState(caretaker.memento)
+	gr.StateDisplay()
+}
+```
+
+## 20. iterator 迭代器模式
 
 ### 定义
 提供一种方法顺序访问一个聚合对象中的各个元素，而又不暴露该对象的内部表示。
@@ -2408,7 +2551,7 @@ func TestIterator(t *testing.T) {
 }
 ```
 
-## visitor 访问者模式
+## 21. visitor 访问者模式
 
 ### 定义
 表示一个作用于某对象结构中的各元素的操作。它使你可以在不改变各元素的类的前提下定义作用于这些元素的新操作。
@@ -2588,7 +2731,7 @@ func TestVisitor(t *testing.T) {
 }
 ```
 
-## command 命令模式
+## 22. command 命令模式
 
 ### 定义
 将一个请求封装为一个对象，从而使你可用不同的请求对客户进行参数化，对请求排队或记录请求日志，以及支持可撤销的操作。
@@ -2763,127 +2906,7 @@ func TestCommand(t *testing.T) {
 }
 ```
 
-## flyweight 享元模式
-
-### 定义
-运用共享技术有效地支持大量细粒度对象的复用。
-
-### 使用场景
-- 一个应用使用了大量的对象，造成很大的存储开销
-- 对象的大多数状态可以变为外部状态
-- 需要维护一组共享对象，并希望复用它们
-
-### 经典案例
-- **Go `sync.Pool`**：对象池复用临时对象，减少 GC 压力
-- **Java String 常量池**：相同的字符串字面量共享同一个 String 对象
-- **数据库连接池**：复用数据库连接，避免频繁创建和销毁
-- **线程池**：复用线程，减少线程创建和销毁的开销
-
-### 核心概念
-- **内蕴状态（Intrinsic State）**：可共享的状态，存储在享元对象内部
-- **外蕴状态（Extrinsic State）**：不可共享的状态，由客户端传入
-
-### 代码
-
-```go
-/*
- Flyweight 享元模式：
-        运用共享技术有效地支持大量细粒度的对象
- 个人想法：主要思想是共享，将可以共享的部分放在对象内部，
-         不可以共享的部分放在外边，享元工厂创建几个享元对象就可以了，
-		这样不同的外部状态，可以针对同一个对象，给人感觉是操作多个对象，
-		通过参数的形式对同一个对象的操作，像是对多个对象的操作
- 日期：   20170311
-*/
-
-package test
-
-import (
-	"fmt"
-)
-
-// 享元对象接口
-type IFlyweight interface {
-	Operation(int) //来自外部的状态
-}
-
-// 共享对象
-type ConcreteFlyweight struct {
-	name string
-}
-
-func (c *ConcreteFlyweight) Operation(outState int) {
-	if c == nil {
-		return
-	}
-	fmt.Println("共享对象响应外部状态", outState)
-}
-
-// 不共享对象
-type UnsharedConcreteFlyweight struct {
-	name string
-}
-
-func (c *UnsharedConcreteFlyweight) Operation(outState int) {
-	if c == nil {
-		return
-	}
-	fmt.Println("不共享对象响应外部状态", outState)
-}
-
-// 享元工厂对象
-type FlyweightFactory struct {
-	flyweights map[string]IFlyweight
-}
-
-func (f *FlyweightFactory) Flyweight(name string) IFlyweight {
-	if f == nil {
-		return nil
-	}
-	if name == "u" {
-		return &UnsharedConcreteFlyweight{"u"}
-	} else if _, ok := f.flyweights[name]; !ok {
-		f.flyweights[name] = &ConcreteFlyweight{name}
-	}
-	return f.flyweights[name]
-}
-
-func NewFlyweightFactory() *FlyweightFactory {
-	ff := FlyweightFactory{make(map[string]IFlyweight)}
-	ff.flyweights["a"] = &ConcreteFlyweight{"a"}
-	ff.flyweights["b"] = &ConcreteFlyweight{"b"}
-	return &ff
-}
-```
-
-```go
-package test
-
-import (
-	"testing"
-)
-
-func TestFlyweight(t *testing.T) {
-	ff := NewFlyweightFactory()
-
-	fya := ff.Flyweight("a")
-	fya.Operation(1)
-
-	fyb := ff.Flyweight("b")
-	fyb.Operation(2)
-
-	fyc := ff.Flyweight("c")
-	fyc.Operation(3)
-
-	fyd := ff.Flyweight("d")
-	fyd.Operation(4)
-
-	fyu := ff.Flyweight("u")
-	fyu.Operation(5)
-}
-```
-
-## mediator 中介者模式
+## 23. mediator 中介者模式
 
 ### 定义
 用一个中介对象来封装一系列的对象交互。中介者使各对象不需要显式地相互引用，从而使其耦合松散，并且可以独立地改变它们之间的交互。
@@ -3070,7 +3093,7 @@ func TestNewConcreteMediator(t *testing.T) {
 }
 ```
 
-## strategy 策略模式
+## 24. strategy 策略模式
 
 ### 定义
 定义一系列算法，将每个算法封装起来，并使它们可以互相替换。策略模式让算法的变化独立于使用算法的客户。
@@ -3204,3 +3227,4 @@ func TestStrategyInvalid(t *testing.T) {
 	}
 }
 ```
+
