@@ -1,7 +1,7 @@
 ---
 title : 'LeetCode Hot 100 精练🥸(2)'
 date : 2024-12-08T10:00:01+08:00
-lastmod: 2025-12-21T10:00:01+08:00
+lastmod: 2026-07-05T10:00:01+08:00
 description : "LeetCode Hot 100 精练🥸(2)" 
 categories : ["LeetCode"]
 tags : ["LeetCode Hot 100"]
@@ -1071,6 +1071,8 @@ func decodeString(s string) string {
 
 统计数组中各元素出现次数，返回出现频率最高的前 k 个不同元素，返回顺序不限，答案唯一。
 
+时间复杂度必须优于 $O(nlogn)$
+
 **2、实现思路**
 
 1. **频率统计**
@@ -1120,6 +1122,62 @@ func topKFrequent(nums []int, k int) []int {
 
 	return res
 }
+```
+
+### 堆
+
+```py
+class Solution:
+    def topKFrequent(self, nums: List[int], k: int) -> List[int]:
+        c = Counter(nums)
+        h = []
+
+        for key, val in c.items():
+            if len(h) < k:
+                heappush(h, (val, key))
+            else:
+                heappush(h, (val, key))
+                heappop(h)
+        
+        res = [key for (_, key) in h]
+
+        return res
+```
+
+### 基于快排
+
+```py
+class Solution:
+    def topKFrequent(self, nums: List[int], k: int) -> List[int]:
+        c = Counter(nums)
+        arr = [(key, val) for key, val in c.items()]
+
+        def qs(l, r, k):
+            if l >= r:
+                return
+
+            r_idx = random.randint(l, r)
+            arr[l], arr[r_idx] = arr[r_idx], arr[l]
+
+            x = arr[l][1]
+            p = l
+
+            for i in range(l + 1, r + 1):
+                if arr[i][1] >= x:
+                    p += 1
+                    arr[p], arr[i] = arr[i], arr[p]
+
+            arr[l], arr[p] = arr[p], arr[l]
+
+            cnt = p - l + 1
+            if k < cnt:
+                qs(l, p - 1, k)
+            elif k > cnt:
+                qs(p + 1, r, k - cnt)
+
+        qs(0, len(arr) - 1, k)
+
+        return [key for key, _ in arr[:k]]
 ```
 
 ## (37)[338. 比特位计数](https://leetcode.cn/problems/counting-bits/)
@@ -1306,7 +1364,7 @@ class Solution:
 
         # 开区间 (left, right) 区间内能获得的最大硬币
         for l in range(2, n + 2):  # len:2~n+1
-            for i in range(n + 1 - l + 1):  # left:0~n+1-len
+            for i in range(n + 1 - l + 1):  # left:0~n-len+1
                 j = i + l  # right = left + len
                 for k in range(i + 1, j):  # 开区间(i,j) 即[i+1, j-1]
                     f[i][j] = max(
@@ -1315,6 +1373,22 @@ class Solution:
 
         return f[0][n + 1]
 
+```
+
+```py
+class Solution:
+    def maxCoins(self, nums: List[int]) -> int:
+        nums = [1] + nums + [1]
+        n = len(nums)
+        f = [[0] * n for _ in range(n)]
+
+        for l in range(2, n):
+            for left in range(n - l):
+                right = left + l 
+                for middle in range(left + 1, right):
+                    f[left][right] = max(f[left][right], f[left][middle] + f[middle][right] + nums[left] * nums[middle] * nums[right])
+                
+        return f[0][n - 1]
 ```
 
 ```go

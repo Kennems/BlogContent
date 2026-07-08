@@ -170,36 +170,49 @@ class Solution:
 ```py
 class Solution:
     def removeInvalidParentheses(self, s: str) -> List[str]:
-        ret = []
-        
-        def check(st):
-            cnt=0
-            for c in st:
-                if c=='(':
-                    cnt+=1
-                elif c==')':
-                    if cnt==0:
+        l = r = 0
+        res = []
+
+        for c in s:
+            if c == "(":
+                l += 1
+            elif c == ")":
+                if l:
+                    l -= 1
+                else:
+                    r += 1
+
+        def check(s):
+            cnt = 0
+            for c in s:
+                if c == "(":
+                    cnt += 1
+                elif c == ")":
+                    if cnt == 0:
                         return False
-                    cnt-=1
-            return cnt==0
-        
-        cur = set([s])
-        
-        while True:
-            for st in cur:
-                if check(st):
-                    ret.append(st)
-            if len(ret):
-                break
-            nxt = set()
-            for st in cur:
-                for i in range(len(st)):
-                    if i>0 and st[i]==st[i-1]:
-                        continue
-                    if st[i]=='(' or st[i]==')':
-                        nxt.add(st[:i]+st[i+1:])
-            cur = nxt
-        return ret
+                    cnt -= 1
+            return cnt == 0
+
+        def dfs(s, start, l, r):
+            if l == 0 and r == 0:
+                if check(s):
+                    res.append(s)
+                return
+
+            for i in range(start, len(s)):
+                if i > start and s[i] == s[i - 1]:
+                    continue
+                if l + r > len(s) - i:
+                    return
+
+                if l > 0 and s[i] == "(":
+                    dfs(s[:i] + s[i + 1:], i, l - 1, r)
+
+                if r > 0 and s[i] == ")":
+                    dfs(s[:i] + s[i + 1:], i, l, r - 1)
+
+        dfs(s, 0, l, r)
+        return res
 ```
 
 ## (43)[300. 最长递增子序列](https://leetcode.cn/problems/longest-increasing-subsequence/)
