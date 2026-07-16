@@ -106,70 +106,6 @@ func max(a, b int) int {
 ```py
 class Solution:
     def removeInvalidParentheses(self, s: str) -> List[str]:
-        l, r = 0, 0
-        ret = []
-        n = len(s)
-
-        for c in s:
-            if c=='(':
-                l+=1
-            elif c==')':
-                if l==0:
-                    r+=1
-                else:
-                    l-=1
-
-        def check(st):
-            cnt=0
-            for c in st:
-                if c=='(':
-                    cnt+=1
-                elif c==')':
-                    cnt-=1
-                    if cnt<0:
-                        return False
-            return (cnt==0)
-        
-        def backtrace(st, start, ln, rn):
-            if ln==0 and rn==0 and check(st):
-                ret.append(st[:])
-                return 
-            for i in range(start, len(st)):
-                if i>start and st[i]==st[i-1]:
-                    continue
-                if ln+rn>n-1-i+1:
-                    break
-                if ln and st[i]=='(':
-                    backtrace(st[:i]+st[i+1:], i, ln-1, rn)
-                elif rn and st[i]==')':
-                    backtrace(st[:i]+st[i+1:], i, ln, rn-1)
-                
-        backtrace(s, 0, l, r)
-        return ret
-```
-
-#### 广搜
-
-这个实现使用了广度优先搜索（BFS）的思路来解决问题。
-
-1. **BFS搜索：**
-   - 使用一个集合`cur`来存储当前层的所有字符串，初始时将输入的字符串`s`加入集合`cur`中。
-   - 在每一轮循环中，遍历当前集合`cur`中的所有字符串，如果其中有字符串是有效的，则将其加入结果列表`ret`中。
-   - 如果结果列表`ret`不为空，则跳出循环，表示已经找到了所有有效的字符串。
-   - 如果结果列表`ret`为空，则需要继续进行下一轮搜索，将当前集合`cur`中的每个字符串，通过删除一个括号的方式，生成所有可能的下一层字符串，加入到集合`nxt`中。
-   - 更新当前集合`cur`为`nxt`，继续下一轮搜索。
-
-2. **检查字符串有效性：**
-   - 定义一个辅助函数`check`，用于检查字符串是否有效。
-   - 遍历字符串中的每个字符，遇到左括号时增加计数器`cnt`，遇到右括号时如果`cnt`为0则返回False（表示右括号没有匹配的左括号），否则减少`cnt`。
-   - 最终判断`cnt`是否为0，如果为0表示字符串有效。
-
-3. **返回结果：**
-   - 返回结果列表`ret`，其中存储了所有有效的字符串。
-
-```py
-class Solution:
-    def removeInvalidParentheses(self, s: str) -> List[str]:
         l = r = 0
         res = []
 
@@ -207,11 +143,68 @@ class Solution:
 
                 if l > 0 and s[i] == "(":
                     dfs(s[:i] + s[i + 1:], i, l - 1, r)
-
                 if r > 0 and s[i] == ")":
                     dfs(s[:i] + s[i + 1:], i, l, r - 1)
 
         dfs(s, 0, l, r)
+        
+        return res
+```
+
+#### 广搜
+
+这个实现使用了广度优先搜索（BFS）的思路来解决问题。
+
+1. **BFS搜索：**
+   - 使用一个集合`cur`来存储当前层的所有字符串，初始时将输入的字符串`s`加入集合`cur`中。
+   - 在每一轮循环中，遍历当前集合`cur`中的所有字符串，如果其中有字符串是有效的，则将其加入结果列表`ret`中。
+   - 如果结果列表`ret`不为空，则跳出循环，表示已经找到了所有有效的字符串。
+   - 如果结果列表`ret`为空，则需要继续进行下一轮搜索，将当前集合`cur`中的每个字符串，通过删除一个括号的方式，生成所有可能的下一层字符串，加入到集合`nxt`中。
+   - 更新当前集合`cur`为`nxt`，继续下一轮搜索。
+
+2. **检查字符串有效性：**
+   - 定义一个辅助函数`check`，用于检查字符串是否有效。
+   - 遍历字符串中的每个字符，遇到左括号时增加计数器`cnt`，遇到右括号时如果`cnt`为0则返回False（表示右括号没有匹配的左括号），否则减少`cnt`。
+   - 最终判断`cnt`是否为0，如果为0表示字符串有效。
+
+3. **返回结果：**
+   - 返回结果列表`ret`，其中存储了所有有效的字符串。
+
+```py
+class Solution:
+    def removeInvalidParentheses(self, s: str) -> List[str]:
+        res = []
+
+        def check(strr):
+            cnt = 0
+
+            for c in strr:
+                if c == "(":
+                    cnt += 1
+                elif c == ")":
+                    if cnt == 0:
+                        return False
+                    cnt -= 1
+
+            return cnt == 0
+
+        cur = set([s])
+        while True:
+            for strr in cur:
+                if check(strr):
+                    res.append(strr)
+            if len(res):
+                break
+
+            nxt = set()
+            for strr in cur:
+                for i in range(len(strr)):
+                    if i > 0 and strr[i] == strr[i - 1]:
+                        continue
+                    if strr[i] in "()":
+                        nxt.add(strr[:i] + strr[i + 1 :])
+            cur = nxt
+
         return res
 ```
 
@@ -290,6 +283,33 @@ class Codec:
         return t
 ```
 
+```py
+class Codec:
+    def serialize(self, root):
+        if not root:
+            return "#"
+        return f"{root.val} {self.serialize(root.left)} {self.serialize(root.right)}"
+
+    def deserialize(self, data):
+        self.data = data.split()
+        self.i = 0
+        return self.dfs()
+
+    def dfs(self):
+        if self.data[self.i] == "#":
+            self.i += 1
+            return None
+
+        root = TreeNode(int(self.data[self.i]))
+        self.i += 1
+        root.left = self.dfs()
+        root.right = self.dfs()
+        return root
+
+```
+
+
+
 ## (45)[287. 寻找重复数](https://leetcode.cn/problems/find-the-duplicate-number/)
 
 **题目大意**：
@@ -308,6 +328,7 @@ class Codec:
 class Solution:
     def findDuplicate(self, nums: List[int]) -> int:
         l, r = 0, len(nums) - 1
+        
         while l < r:
             mid = l + r >> 1
             s = 0
@@ -318,6 +339,7 @@ class Solution:
                 l = mid + 1
             else:
                 r = mid
+                
         return l
 ```
 
@@ -402,17 +424,16 @@ class Solution:
 
 ```
 
+
+
 ## (48)[会议室 II](https://www.lintcode.com/problem/919/description)
 
 **题目大意**：
-给定一系列会议的时间区间，求最少需要多少个会议室才能安排所有会议。
+
+给定一系列的会议时间间隔 `intervals`，包括起始和结束时间`[[s1,e1],[s2,e2],...] (si < ei)`，找到所需的最小的会议室数量。
 
 **解题思路**：
-差分数组/扫描线法。将每个区间的起始时间和结束时间分别视为+1和-1的事件，按时间排序后扫描，累加当前同时进行的会议数，记录最大值即为所需最少会议室数。时间复杂度 O(n log n)，由排序决定。
-
-描述
-
-给定一系列的会议时间间隔intervals，包括起始和结束时间`[[s1,e1],[s2,e2],...] (si < ei)`，找到所需的最小的会议室数量。
+差分数组/扫描线法。将每个区间的起始时间和结束时间分别视为+1和-1的事件，按时间排序后扫描，累加当前同时进行的会议数，记录最大值即为所需最少会议室数。时间复杂度 $O(n log n)$，由排序决定。
 
 ```py
 class Solution:
@@ -466,6 +487,34 @@ func MinMeetingRooms(intervals []*Interval) int {
 }
 ```
 
+### 堆解法
+
+```py
+class Solution:
+    """
+    @param intervals: an array of meeting time intervals
+    @return: the minimum number of conference rooms required
+    """
+    def min_meeting_rooms(self, intervals: List[Interval]) -> int:
+        if not intervals:
+            return 0
+
+        intervals.sort(key=lambda x: (x.start, x.end))
+
+        heap = []
+        for interval in intervals:
+            start, end = interval.start, interval.end
+            
+            if heap and heap[0] <= start:
+                heappop(heap)
+
+            heappush(heap, end)
+
+        return len(heap)
+```
+
+
+
 ## (49)[240. 搜索二维矩阵 II](https://leetcode.cn/problems/search-a-2d-matrix-ii/)
 
 **题目大意**：
@@ -474,7 +523,7 @@ func MinMeetingRooms(intervals []*Interval) int {
 **解题思路**：
 从矩阵右上角开始搜索，利用行列单调性逐步缩小范围。若当前元素等于 target 则返回 true；若大于 target，则该列下方所有元素都更大，左移一列；若小于 target，则该行左侧所有元素都更小，下移一行。时间复杂度 O(m + n)。
 
-编写一个高效的算法来搜索 `*m* x *n*` 矩阵 `matrix` 中的一个目标值 `target` 。该矩阵具有以下特性：
+编写一个高效的算法来搜索 `m x n` 矩阵 `matrix` 中的一个目标值 `target` 。该矩阵具有以下特性：
 
 - 每行的元素从左到右升序排列。
 - 每列的元素从上到下升序排列。
@@ -484,6 +533,7 @@ class Solution:
     def searchMatrix(self, matrix: List[List[int]], target: int) -> bool:
         m, n = len(matrix), len(matrix[0])
         i, j = 0, n - 1
+        
         while i < m and j >= 0:
             if matrix[i][j] == target:
                 return True
@@ -568,7 +618,6 @@ class Solution:
 
         dfs(0, 0, 0)
         return res
-
 ```
 
 
@@ -662,7 +711,6 @@ class Solution:
         dfs(1)
 
         return res
-
 ```
 
 
@@ -676,6 +724,8 @@ class Solution:
 单调递减栈法。遍历每个柱子时，若当前高度大于栈顶高度，说明栈顶柱子形成了低洼处可以接水。弹出栈顶作为底部，取当前柱子和新栈顶中较矮的一个作为水面高度，计算 "宽度 * (水面高度 - 底部高度)" 累加。栈中存储的是下标，保证宽度的正确计算。时间复杂度 O(n)。
 
 给定 `n` 个非负整数表示每个宽度为 `1` 的柱子的高度图，计算按此排列的柱子，下雨之后能接多少雨水。
+
+### 单调栈
 
 ```py
 class Solution:
@@ -701,7 +751,29 @@ class Solution:
 
 ```
 
+### 动态规划
 
+```py
+class Solution:
+    def trap(self, height: List[int]) -> int:
+        n = len(height)
+        l, r = 0, n - 1
+        lmx, rmx = 0, 0
+        res = 0
+
+        while l < r:
+            lmx = max(lmx, height[l])
+            rmx = max(rmx, height[r])
+
+            if height[l] < height[r]:
+                res += lmx - height[l]
+                l += 1
+            else:
+                res += rmx - height[r]
+                r -= 1
+
+        return res
+```
 
 
 

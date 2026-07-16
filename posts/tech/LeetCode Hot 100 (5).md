@@ -11,8 +11,6 @@ tags : ["LeetCode Hot 100"]
 
 记忆中的东西一定会消退，真正留下的才是学到的，一定要及时回顾。
 
-
-
 ##   (81)[104. 二叉树的最大深度](https://leetcode.cn/problems/maximum-depth-of-binary-tree/)
 
 给定一个二叉树 `root` ，返回其最大深度。

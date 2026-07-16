@@ -51,15 +51,20 @@ class Solution:
 class Solution:
     def convertBST(self, root: Optional[TreeNode]) -> Optional[TreeNode]:
         s = 0
+        
         def dfs(r):
             nonlocal s
             if not r:
                 return 0
             dfs(r.right)
+            
             s += r.val
             r.val = s 
+            
             dfs(r.left)
+            
         dfs(root)
+        
         return root
 ```
 
@@ -93,6 +98,7 @@ class Solution:
                     s += root.val
                     root.val = s 
                     root = root.left
+                    
         return newRoot
 ```
 
@@ -128,6 +134,7 @@ class Solution:
             head = lists[i]
             if head:
                 heappush(h, pq(head.val, head))
+                
         newHead = ListNode(-1)
         dummy = newHead
         while h:
@@ -161,13 +168,12 @@ class Solution:
 class Solution:
     def subarraySum(self, nums: List[int], k: int) -> int:
         d = defaultdict(int)
-        d[0] += 1
-        n, pre, res = len(nums), 0, 0
+        pre, res = 0, 0
+        d[0] = 1
 
-        for i in range(n):
-            pre += nums[i]
-            if d[pre - k]:
-                res += d[pre - k]
+        for num in nums:
+            pre += num
+            res += d[pre - k]
             d[pre] += 1
 
         return res
@@ -321,29 +327,31 @@ class Solution:
     def letterCombinations(self, digits: str) -> List[str]:
         # 自救者人能救之
         n = len(digits)
-        if not n: 
+        if not n:
             return []
-        s = []
-        res = []
+        s, res = [], []
 
         def dfs(i):
-            if i==n:
-                res.append(''.join(s))
-                return 
+            if i == n:
+                res.append("".join(s))
+                return
 
-            beg = 3 * ( int(digits[i]) - 2) + 1 \
-                    + (1 if digits[i]=='8' or digits[i]=='9' else 0) 
-            
-            lim = 3
-            if digits[i]=="7" or digits[i]=="9": lim = 4
+            begin = (
+                3 * (int(digits[i]) - 2)
+                + (1 if digits[i] in "89" else 0)
+            )
 
-            for j in range(beg, beg+lim):
-                s.append(chr(j-1 + ord('a')))
-                dfs(i+1)
+            limit = 3
+            if digits[i] in "79":
+                limit = 4
+
+            for j in range(begin, begin + limit):
+                s.append(chr(j + ord("a")))
+                dfs(i + 1)
                 s.pop()
 
         dfs(0)
-        
+
         return res
 ```
 
@@ -362,21 +370,32 @@ class Solution:
     def threeSum(self, nums: List[int]) -> List[List[int]]:
         n = len(nums)
         nums.sort()
+        target = 0
         res = []
+
         for i in range(n):
-            l = i 
-            r = n-1
-            if i and nums[i]==nums[i-1]:
+            if i and nums[i] == nums[i - 1]:
                 continue
-            for m in range(l+1, n):
-                if m>l+1 and nums[m]==nums[m-1]:
-                    continue
-                while r>m and nums[r]+nums[m]+nums[l]>0:
-                    r-=1
-                if m==r: break
-                if nums[r]+nums[m]+nums[l]==0:
-                    res.append([nums[l], nums[m], nums[r]])
+
+            l, r = i + 1, n - 1
+            while l < r:
+                tot = nums[i] + nums[l] + nums[r]
+                
+                if tot < target:
+                    l += 1
+                elif tot > target:
+                    r -= 1
+                elif tot == target:
+                    res.append([nums[i], nums[l], nums[r]])
+                    l += 1
+                    r -= 1
+                    while l < r and nums[l] == nums[l - 1]:
+                        l += 1
+                    while l < r and nums[r] == nums[r + 1]:
+                        r -= 1
+
         return res
+
 ```
 
 ### 计数排序双指针
@@ -400,6 +419,7 @@ class Solution:
                     num2 = -num-num3
                     if num2 in c:
                         res.append([num,num2,num3])
+                        
         return res
 ```
 
@@ -472,10 +492,6 @@ class Solution:
 
 ​      
 
-
-
-
-
 ##   (72)[5. 最长回文子串](https://leetcode.cn/problems/longest-palindromic-substring/)    
 
 给你一个字符串 `s`，找到 `s` 中最长的 回文 子串。
@@ -484,6 +500,37 @@ class Solution:
 找出给定字符串中的最长回文子串。
 
 **解题思路**：
+
+普通中心扩展
+
+```py
+class Solution:
+    def longestPalindrome(self, s: str) -> str:
+        def expand(left: int, right: int) -> str:
+            # 从中心向两边扩展，找到最长回文
+            while left >= 0 and right < len(s) and s[left] == s[right]:
+                left -= 1
+                right += 1
+            # 循环结束时，left 和 right 多走了一步，所以要 +1 和 -1
+            return s[left + 1:right]
+
+        result = ""
+        for i in range(len(s)):
+            # 奇数长度回文，中心是 s[i]
+            odd = expand(i, i)
+            # 偶数长度回文，中心是 s[i] 和 s[i+1]
+            even = expand(i, i + 1)
+
+            # 取较长的那个
+            if len(odd) > len(result):
+                result = odd
+            if len(even) > len(result):
+                result = even
+
+        return result
+
+```
+
 马拉车算法（Manacher）。通过插入分隔符统一处理奇偶长度回文，维护当前最右回文中心 c 和右边界 r，利用对称性加速回文半径计算。
 
 ```py
@@ -526,12 +573,12 @@ class Solution:
 ```py
 class Solution:
     def findMedianSortedArrays(self, nums1: List[int], nums2: List[int]) -> float:
-        def get(k):
+        def get(k):  # 找到连个有序数组的第k个数
             idx1, idx2 = 0, 0
             while True:
-                if idx1 == m:
+                if idx1 > m - 1:
                     return nums2[idx2 + k - 1]
-                if idx2 == n:
+                if idx2 > n - 1:
                     return nums1[idx1 + k - 1]
                 if k == 1:
                     return min(nums1[idx1], nums2[idx2])
@@ -548,12 +595,11 @@ class Solution:
                     idx2 = newIdx2 + 1
 
         m, n = len(nums1), len(nums2)
-        l = m + n
 
-        if l & 1:
-            return get(l // 2 + 1)
+        if (m + n) & 1:
+            return get((m + n) // 2 + 1)
         else:
-            return (get(l // 2) + get(l // 2 + 1)) / 2
+            return (get((m + n) // 2) + get((m + n) // 2 + 1)) / 2
 
 ```
 
@@ -643,7 +689,6 @@ class Solution:
             res = max(res, i - j + 1)
 
         return res
-
 ```
 
 
