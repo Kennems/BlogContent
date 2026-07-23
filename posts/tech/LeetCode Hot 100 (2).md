@@ -565,27 +565,28 @@ func findDisappearedNumbers(nums []int) []int {
 ```py
 class Solution:
     def findAnagrams(self, s: str, p: str) -> List[int]:
-        n, m = len(s), len(p)
-        cnt = m
+        count = Counter(p)
+        needCnt = len(p)
         res = []
 
-        d = Counter(p)
-        j = 0
-        for i in range(n):
-            while i - j + 1 > m:
-                if s[j] in d:
-                    d[s[j]] += 1
-                    if d[s[j]]:
-                        cnt += 1
-                j += 1
+        left = 0
 
-            if s[i] in d:
-                if d[s[i]]:
-                    cnt -= 1
-                d[s[i]] -= 1
+        for right, ch in enumerate(s):
+            if ch in count:
+                if count[ch] > 0:
+                    needCnt -= 1
+                count[ch] -= 1
 
-            if cnt == 0:
-                res.append(j)
+            if right - left + 1 > len(p):
+                leftCh = s[left]
+                if leftCh in count:
+                    if count[leftCh] >= 0:
+                        needCnt += 1
+                    count[leftCh] += 1
+                left += 1
+
+            if needCnt == 0:
+                res.append(left)
 
         return res
 ```
