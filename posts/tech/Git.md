@@ -211,55 +211,67 @@ set HTTPS_PROXY=
 git -c http.proxy= clone https://huggingface.co/XiaomiMiMo/MiMo-7B-RL
 ```
 
-## 恢复
+## 恢复与撤销 (Reset, Revert, Rebase)
 
-### 1. 恢复到特定提交
+### 1. 撤销/回滚操作速查表
 
-将分支恢复到某个特定的提交（如 `abc1234`），可以使用以下命令：
+| 场景需求 | 核心命令 | 历史保留情况 | 适用范围 |
+| :--- | :--- | :--- | :--- |
+| **撤销最新一次提交**，修改保留在**暂存区** | `git reset --soft HEAD~1` | 仅丢弃最新 commit，保留历史 | 本地未推送 |
+| **撤销最新一次提交**，修改保留在**工作区** | `git reset HEAD~1` | 仅丢弃最新 commit，保留历史 | 本地未推送 |
+| **彻底回退到指定提交**，丢弃后续所有改动 | `git reset --hard <commit_id>` | 抹去该提交之后的所有历史 | 本地未推送 |
+| **安全撤销历史中某次提交**，生成反向修改 | `git revert <commit_id>` | 追加新提交以撤销，完整保留历史 | 已推送/多人协作 |
+| **彻底删除历史中某次提交**，改写提交历史 | `git rebase -i <commit_id>^` 并设为 `drop` | 丢弃特定 commit，修改历史 hash | 本地未推送 |
+| **撤销历史中某次提交**，但**保留修改到暂存区/工作区** | `git rebase -i <commit_id>^` 并设为 `edit` | 丢弃特定 commit，提取修改到本地 | 本地未推送 |
 
+---
+
+### 2. 核心操作步骤
+
+#### 撤销最近一次提交 (HEAD)
+* **保留在暂存区 (可直接再次 commit)**:
+  ```bash
+  git reset --soft HEAD~1
+  ```
+* **保留在工作区 (需重新 git add)**:
+  ```bash
+  git reset HEAD~1
+  ```
+
+#### 撤销历史中指定的某个提交
+* **追加反向提交（不改写历史，安全）**:
+  ```bash
+  git revert <commit_id>        # 自动生成撤销 commit 并提交
+  git revert -n <commit_id>     # 撤销改动并保留在暂存区，不自动生成 commit
+  ```
+* **使用交互式变基（改写历史，仅限本地未推送分支）**:
+  ```bash
+  git rebase -i <commit_id>^
+  ```
+  * **直接删除**：将对应行前面的 `pick` 改为 `drop` (或删掉该行) -> 保存并退出。
+  * **提取修改**：将对应行前面的 `pick` 改为 `edit` -> 保存退出 -> 暂停时运行 `git reset HEAD~1` (或 `--soft`) -> 运行 `git rebase --continue`。
+
+#### 找回误删的提交
 ```bash
-git reset --hard abc1234
+git reflog                      # 查找被删除 commit 的哈希值（如 abc1234）
+git reset --hard abc1234        # 将分支强制指向该提交
 ```
 
-这将重置当前分支到该提交，并且会丢失该提交之后的所有更改。
+---
 
-### 2. 还原最近的提交（但保留更改）
+### 3. 避坑指南：撤销“新建文件”的 Commit，但后续 Commit 已修改该文件，会怎样？
 
-如果你想撤销最近的提交，但保留工作区的更改，可以使用：
+若 Commit A 新建了 `foo.txt`，而后续 Commit B 修改了 `foo.txt`，撤销 Commit A 会因为“文件依赖丢失”而产生**冲突**。
 
-```bash
-git reset --soft HEAD~1
-```
-
-这会将 HEAD 移动到上一个提交，同时保留你的更改在暂存区。
-
-### 3. 恢复被删除的提交
-
-如果你需要恢复一个已经被删除的提交，可以使用 `git reflog` 查找并恢复它：
-
-```bash
-git reflog
-```
-
-找到需要恢复的提交哈希（如 `abc1234`），然后使用：
-
-```  bash
-git checkout abc1234
-```
-
-或者，如果你想将当前分支移动到该提交：
-
-```bash
-git reset --hard abc1234
-```
-
-### 4. 撤销最近的提交（保持更改）
-
-如果你想撤销最近的提交，但想保留更改在工作目录中，可以使用：
-
-```bash
-git revert HEAD
-```
+* **使用 revert 撤销**:
+  * **现象**：提示 `modify/delete` 冲突。
+  * **解决**：编辑冲突，决定是彻底删除文件还是保留后续修改，再运行 `git add` 和 `git revert --continue`。
+* **使用 rebase drop 撤销**:
+  * **现象**：应用 Commit B 时报错并中断，因为找不到要修改的 `foo.txt`。
+  * **解决**：手动处理冲突（如 `git rm foo.txt` 放弃该文件修改，或把文件重新丢回暂存区），再运行 `git rebase --continue`。
+* **使用 rebase edit 撤销**:
+  * **现象**：在 Commit A 处暂停并运行 `git reset HEAD~1` 会将文件改动放回工作区。
+  * **注意**：**必须先重新提交该文件**（可以是修改后的版本），使文件存在于历史中，再运行 `git rebase --continue`；否则后续 Commit B 应用时依旧会报错冲突。
 
 ## 分支
 

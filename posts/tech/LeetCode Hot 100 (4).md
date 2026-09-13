@@ -308,6 +308,34 @@ class Solution:
 
 ```
 
+```py
+# Definition for singly-linked list.
+# class ListNode:
+#     def __init__(self, val=0, next=None):
+#         self.val = val
+#         self.next = next
+class Solution:
+    def removeNthFromEnd(self, head: Optional[ListNode], n: int) -> Optional[ListNode]:
+        cur = head
+        dummy = head
+
+        for i in range(n):
+            cur = cur.next
+
+        if not cur: # 删除的节点就是第一个
+            return head.next 
+
+        while cur.next:
+            cur = cur.next
+            dummy = dummy.next
+        
+        dummy.next = dummy.next.next
+
+        return head
+```
+
+
+
 ##   (68)[17. 电话号码的字母组合](https://leetcode.cn/problems/letter-combinations-of-a-phone-number/)
 
 给定一个仅包含数字 `2-9` 的字符串，返回所有它能表示的字母组合。答案可以按 **任意顺序** 返回。
